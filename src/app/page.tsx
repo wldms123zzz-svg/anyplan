@@ -8,13 +8,14 @@ const TAGS = {
   몸상태: ["완전 쌩쌩함 🏃", "적당함 🚶", "조금 피곤함 🥱", "녹초 상태 🫠"],
   예산: ["공짜면 좋지 💸", "오늘만큼은 돈을 쓸래요! 💳"],
   지역: ["전국", "서울", "부산", "대구", "인천", "광주", "대전", "울산", "세종", "경기", "강원", "충북", "충남", "전북", "전남", "경북", "경남", "제주"],
+  이동수단: ["뚜벅이 데이트 🚶‍♀️", "자차 데이트 🚗"],
 };
 
 export default function DateThemeApp() {
   const [step, setStep] = useState("start");
   const [profile, setProfile] = useState({ myAge: 25, myGender: "여", partnerAge: 25, partnerGender: "남" });
   const [taste, setTaste] = useState<any>({ 무드: [], 활동: [] });
-  const [condition, setCondition] = useState<any>({ myBody: "", partnerBody: "", 예산: "", 지역: "전국", mode: "" });
+  const [condition, setCondition] = useState<any>({ myBody: "", partnerBody: "", 예산: "", 지역: "전국", mode: "", 이동수단: "" });
   const [result, setResult] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [loadingText, setLoadingText] = useState("AI가 결과 찾는 중...");
@@ -652,6 +653,23 @@ export default function DateThemeApp() {
               </div>
             </div>
 
+            {/* 이동수단 */}
+            <div style={{ marginBottom: 32 }}>
+              <p style={{ fontSize: 14, fontWeight: 600, color: "#4E5968", marginBottom: 12 }}>이동 수단</p>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                {TAGS.이동수단.map(v => (
+                  <button
+                    key={v}
+                    className={`tag-btn ${condition.이동수단 === v ? "active" : ""}`}
+                    style={{ textAlign: "center", padding: "14px 10px", fontSize: "14px" }}
+                    onClick={() => setCond("이동수단", v)}
+                  >
+                    {v}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* 모드 및 축제 정보 */}
             <div style={{ marginBottom: 40 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
@@ -727,6 +745,13 @@ export default function DateThemeApp() {
               </div>
 
               <div style={{ padding: "24px" }}>
+                {result.transportInfo && (
+                  <div style={{ background: "#F2F4F6", padding: "12px 16px", borderRadius: "12px", marginBottom: 24, display: "flex", alignItems: "center", gap: 10 }}>
+                    <span style={{ fontSize: 18 }}>{condition.이동수단?.includes("뚜벅이") ? "🚇" : "🅿️"}</span>
+                    <span style={{ fontSize: 13, color: "#4E5968", fontWeight: 500 }}>{result.transportInfo}</span>
+                  </div>
+                )}
+
                 <p style={{ fontSize: 13, fontWeight: 600, color: "#8B95A1", marginBottom: 16 }}>추천 활동</p>
                 {result.doThis?.map((item: string, i: number) => (
                   <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "14px 0", borderBottom: i === result.doThis.length - 1 ? "none" : "1px solid #F2F4F6" }}>
