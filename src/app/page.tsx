@@ -156,54 +156,11 @@ export default function DateThemeApp() {
     triggerHaptic();
     setStep("start");
     setTaste({ 무드: [], 활동: [] });
-    setCondition({ myBody: "", partnerBody: "", 예산: "", 지역: "전국", mode: "" });
+    setCondition({ myBody: "", partnerBody: "", 예산: "", 지역: "전국", mode: "", 이동수단: "" });
     setResult(null);
     setErrorMsg("");
   };
 
-  const rollTheme = async () => {
-    if (!profile.myAge || !profile.partnerAge) {
-      setErrorMsg("나이를 정확히 입력해주세요.");
-      return;
-    }
-    if (!condition.myBody || !condition.partnerBody || !condition.예산 || !condition.mode) {
-      setErrorMsg("컨디션과 상황을 모두 선택해주세요.");
-      return;
-    }
-
-    triggerHaptic("success");
-    setLoading(true);
-    setRolling(true);
-    setErrorMsg("");
-    // setStep("result"); // 데이터 받기 전까지는 기존 화면 유지 (오버레이가 덮음)
-
-    try {
-      // API 호출 시도
-      const res = await fetch("/api/theme", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ profile, taste, condition }),
-      });
-      
-      const data = await res.json();
-      
-      if (!res.ok) {
-        throw new Error(data.error || "테마 생성 중 오류가 발생했습니다.");
-      }
-
-      setResult(data);
-      setStep("result"); // 데이터가 완벽히 로드된 후 화면 전환
-      triggerHaptic("success");
-    } catch (err: any) {
-      console.error(err);
-      // 에러 시 로딩창을 닫아야 에러 메시지가 사용자에게 보임
-      setLoading(false);
-      setErrorMsg("연결 실패. Vercel에서 'Deployment Protection' 기능이 비활성화되었는지 확인해주세요.");
-    } finally {
-      setRolling(false);
-      setLoading(false);
-    }
-  };
 
 
 
