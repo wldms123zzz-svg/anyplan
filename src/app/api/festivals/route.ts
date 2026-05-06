@@ -14,10 +14,12 @@ export async function POST(req: NextRequest) {
     }
 
     const today = new Date();
-    const targetYear = today.getFullYear();
     const targetMonth = month || (today.getMonth() + 1);
     const targetMonthStr = String(targetMonth).padStart(2, "0");
-    const startDate = `${targetYear}${targetMonthStr}01`;
+    
+    // 연도에 상관없이 데이터를 가져오기 위해, 현재 연도뿐만 아니라 직전 연도 데이터도 검색 시도
+    const yearsToTry = [2026, 2025, 2024];
+    let allItems: any[] = [];
 
     const AREA_CODES: Record<string, string> = {
       "서울": "1", "인천": "2", "대전": "3", "대구": "4", "광주": "5", "부산": "6", "울산": "7", "세종": "8",
@@ -26,45 +28,60 @@ export async function POST(req: NextRequest) {
     
     const areaCode = AREA_CODES[region] || "";
     const areaParam = areaCode ? `&areaCode=${areaCode}` : "";
-    
-    // 1차 시도: searchFestival2 (월별 축제 전용 API)
-    let tourUrl = `https://apis.data.go.kr/B551011/KorService2/searchFestival2?serviceKey=${tourKey}&MobileOS=ETC&MobileApp=TodayDate&_type=json&eventStartDate=${startDate}&numOfRows=50${areaParam}`;
-    let res = await fetch(tourUrl);
-    let data = await res.json();
-    let items = data?.response?.body?.items?.item || [];
 
-    // 2차 시도: 만약 축제가 없다면 areaBasedList2 (일반 행사/전시)로 확장하되, 나중에 수동 필터링
-    if (!Array.isArray(items) || items.length === 0) {
-      tourUrl = `https://apis.data.go.kr/B551011/KorService2/areaBasedList2?serviceKey=${tourKey}&MobileOS=ETC&MobileApp=TodayDate&_type=json&contentTypeId=15&numOfRows=100&listYN=Y&arrange=Q${areaParam}`;
-      res = await fetch(tourUrl);
-      data = await res.json();
-      items = data?.response?.body?.items?.item || [];
+    for (const year of yearsToTry) {
+      const startDate = `${year}${targetMonthStr}01`;
+      const tourUrl = `https://apis.data.go.kr/B551011/KorService2/searchFestival2?serviceKey=${tourKey}&MobileOS=ETC&MobileApp=TodayDate&_type=json&eventStartDate=${startDate}&numOfRows=50${areaParam}`;
+      
+      try {
+        const res = await fetch(tourUrl);
+        const data = await res.json();
+        const items = data?.response?.body?.items?.item || [];
+        if (Array.isArray(items)) {
+          // 해당 월에 시작하거나 진행 중인 것만 필터링
+          const filtered = items.filter((item: any) => {
+            const start = item.eventstartdate || "";
+            return start.substring(4, 6) === targetMonthStr;
+          });
+          allItems = [...allItems, ...filtered];
+        } else if (items.title) { // 단일 아이템인 경우
+          if (items.eventstartdate?.substring(4, 6) === targetMonthStr) {
+            allItems.push(items);
+          }
+        }
+      } catch (e) {
+        console.error(`${year}년 데이터 호출 실패:`, e);
+      }
+      
+      if (allItems.length >= 5) break; // 충분히 찾았으면 중단
     }
 
-    // 결과 필터링: 선택한 '월'에 해당하는 데이터만 엄격하게 선별
-    if (Array.isArray(items)) {
-      items = items.filter((item: any) => {
-        // searchFestival2는 eventstartdate가 있고, areaBasedList2는 없을 수 있음
-        // 하지만 contentTypeId=15인 경우 대부분 기간 정보가 존재함
-        const start = item.eventstartdate || "";
-        const end = item.eventenddate || "";
-        
-        // 시작월이 일치하거나, 해당 월이 행사 기간(시작~종료) 사이에 포함되는지 확인
-        const isStartInMonth = start.substring(4, 6) === targetMonthStr;
-        const isMonthInRange = start <= `${targetYear}${targetMonthStr}31` && end >= `${targetYear}${targetMonthStr}01`;
-        
-        return isStartInMonth || isMonthInRange;
-      }).map((item: any) => ({
-        title: item.title,
-        addr1: item.addr1,
-        firstimage: item.firstimage,
-        eventstartdate: item.eventstartdate || "",
-        eventenddate: item.eventenddate || ""
-      }));
+    // 그래도 없다면 일반 관광지 리스트(areaBasedList2)에서 가져옴
+    if (allItems.length === 0) {
+      const tourUrl = `https://apis.data.go.kr/B551011/KorService2/areaBasedList2?serviceKey=${tourKey}&MobileOS=ETC&MobileApp=TodayDate&_type=json&contentTypeId=15&numOfRows=20&listYN=Y&arrange=Q${areaParam}`;
+      const res = await fetch(tourUrl);
+      const data = await res.json();
+      const items = data?.response?.body?.items?.item || [];
+      if (Array.isArray(items)) {
+        allItems = items;
+      } else if (items.title) {
+        allItems = [items];
+      }
     }
 
-    // 최대 10개까지만 반환
-    const resultItems = Array.isArray(items) ? items.slice(0, 10) : [];
+    // 데이터 가공 및 중복 제거
+    const seenTitles = new Set();
+    const resultItems = allItems.filter(item => {
+      if (seenTitles.has(item.title)) return false;
+      seenTitles.add(item.title);
+      return true;
+    }).slice(0, 10).map((item: any) => ({
+      title: item.title,
+      addr1: item.addr1,
+      firstimage: item.firstimage,
+      eventstartdate: item.eventstartdate || "",
+      eventenddate: item.eventenddate || ""
+    }));
 
     const result = NextResponse.json(resultItems);
     result.headers.set("Access-Control-Allow-Origin", "*");
