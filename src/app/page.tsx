@@ -22,7 +22,7 @@ export default function DateThemeApp() {
   const [isSharing, setIsSharing] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [partnerVote, setPartnerVote] = useState<string | null>(null); // 'agree' | 'disagree'
-  const [countdown, setCountdown] = useState(5);
+  const [countdown, setCountdown] = useState(10);
   const [loadingTip, setLoadingTextTip] = useState("");
   const diceRef = useRef<HTMLDivElement>(null);
 
@@ -60,7 +60,7 @@ export default function DateThemeApp() {
     let timer: NodeJS.Timeout;
 
     if (loading) {
-      setCountdown(5);
+      setCountdown(10);
       const messages = [
         "📡 전국 축제 네트워크 접속 중...",
         "🧠 완벽한 동선 설계 중...",
@@ -375,7 +375,7 @@ export default function DateThemeApp() {
           </p>
           <div style={{ width: "100%", maxWidth: 200, height: 6, background: "#E5E8EB", borderRadius: 3, overflow: "hidden", marginBottom: 40 }}>
             <div style={{ 
-              width: `${((5 - countdown) / 5) * 100}%`, 
+              width: `${((10 - countdown) / 10) * 100}%`, 
               height: "100%", 
               background: "#3182F6", 
               transition: "width 1s linear" 
