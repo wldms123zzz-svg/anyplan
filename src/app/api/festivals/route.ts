@@ -25,65 +25,41 @@ export async function POST(req: NextRequest) {
     const areaCode = AREA_CODES[region] || "";
     const areaParam = areaCode ? `&areaCode=${areaCode}` : "";
     
-    // 1. 아주 넓은 범위로 검색 (연도 제한 없이 해당 지역의 모든 행사/전시/팝업)
-    // contentTypeId=15(행사)를 기준으로 최신순(arrange=Q)으로 100개 긁어옴
+    // 1. 아주 넓은 범위로 검색 (contentTypeId 15: 행사/전시/축제)
     const tourUrl = `https://apis.data.go.kr/B551011/KorService2/areaBasedList2?serviceKey=${tourKey}&MobileOS=ETC&MobileApp=TodayDate&_type=json&contentTypeId=15&numOfRows=100&listYN=Y&arrange=Q${areaParam}`;
     
     const res = await fetch(tourUrl);
     const data = await res.json();
-    const items = data?.response?.body?.items?.item || [];
     
-    let allItems = Array.isArray(items) ? items : (items.title ? [items] : []);
+    // API 응답 구조가 복잡할 수 있으므로 안전하게 추출
+    let allItems = data?.response?.body?.items?.item || [];
+    if (!Array.isArray(allItems)) {
+      allItems = allItems.title ? [allItems] : [];
+    }
 
-    // 2. 필터링 로직 (최대한 많이 보여주기 위해 유연하게 적용)
+    // 2. 필터링 로직: 선택한 월에 해당하는 것 위주로 찾되, 없으면 그냥 다 보여줌
     let filtered = allItems.filter((item: any) => {
       const start = item.eventstartdate || "";
       const end = item.eventenddate || "";
-      
-      // 우선순위 1: 2026년 해당 월에 걸쳐 있는 경우
-      const is2026Match = (start.startsWith("2026") || end.startsWith("2026")) && 
-                          (start.substring(4, 6) === targetMonthStr || (start <= `2026${targetMonthStr}31` && end >= `2026${targetMonthStr}01`));
-      
-      // 우선순위 2: 연도 정보가 없거나 과거 연도여도, 월 정보가 일치하면 '정기 행사'로 간주하여 포함
-      const isMonthMatch = start.substring(4, 6) === targetMonthStr || end.substring(4, 6) === targetMonthStr;
-      
-      // 우선순위 3: 팝업, 전시, 마켓 등 유동적인 키워드가 포함된 경우 (날짜 무관하게 일단 노출)
-      const isSpecialKeyword = item.title.match(/팝업|전시|마켓|전|박람회|페어|콘서트/);
-
-      return is2026Match || isMonthMatch || isSpecialKeyword;
+      return start.substring(4, 6) === targetMonthStr || end.substring(4, 6) === targetMonthStr || 
+             (start <= `2026${targetMonthStr}31` && end >= `2026${targetMonthStr}01`);
     });
 
-    // 만약 필터링 결과가 너무 적다면(3개 미만), 해당 지역의 모든 행사를 그냥 다 보여줌 (날짜 무관)
-    if (filtered.length < 3) {
-      filtered = allItems.slice(0, 10);
-    }
-
-    // 결과 가공 및 중복 제거
+    // 필터링 결과가 너무 적으면 전체 리스트에서 10개 강제 추출
+    const resultSource = filtered.length > 3 ? filtered : allItems;
+    
     const seenTitles = new Set();
-    const resultItems = filtered.filter(item => {
+    const resultItems = resultSource.filter((item: any) => {
       if (!item.title || seenTitles.has(item.title)) return false;
       seenTitles.add(item.title);
       return true;
-    }).slice(0, 15).map((item: any) => {
-      // 날짜가 과거 연도(2024, 2025)인 경우 사용자 경험을 위해 2026년으로 보정하여 표시 (데이터가 없는 2026년 상황 대응)
-      let displayStart = item.eventstartdate || "";
-      let displayEnd = item.eventenddate || "";
-      
-      if (displayStart && !displayStart.startsWith("2026")) {
-        displayStart = "2026" + displayStart.substring(4);
-      }
-      if (displayEnd && !displayEnd.startsWith("2026")) {
-        displayEnd = "2026" + displayEnd.substring(4);
-      }
-
-      return {
-        title: item.title,
-        addr1: item.addr1,
-        firstimage: item.firstimage,
-        eventstartdate: displayStart,
-        eventenddate: displayEnd
-      };
-    });
+    }).slice(0, 15).map((item: any) => ({
+      title: item.title,
+      addr1: item.addr1,
+      firstimage: item.firstimage,
+      eventstartdate: item.eventstartdate || "2026" + targetMonthStr + "01",
+      eventenddate: item.eventenddate || "2026" + targetMonthStr + "28"
+    }));
 
     const result = NextResponse.json(resultItems);
     result.headers.set("Access-Control-Allow-Origin", "*");

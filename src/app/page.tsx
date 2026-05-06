@@ -232,16 +232,35 @@ export default function DateThemeApp() {
       }
     } catch (err) {
       console.error(err);
+      setFestMessage("축제 정보를 불러오는 중 일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
       setFestivals([]);
     } finally {
       setFestLoading(false);
     }
   };
 
-  const reroll = () => {
-    triggerHaptic("success");
-    setResult(null);
-    rollTheme();
+  const rollTheme = async () => {
+    if (loading) return;
+    triggerHaptic();
+    setLoading(true);
+    setError(""); // 이전 에러 초기화
+    try {
+      const res = await fetch("/api/theme", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ profile, taste: { ...taste, 활동: taste.활동 }, condition }),
+      });
+      if (!res.ok) throw new Error("추천 결과 생성 실패");
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      setResult(data);
+      setStep("result");
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || "추천 결과를 가져오지 못했습니다. 다시 시도해주세요.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleShare = async () => {
