@@ -4,15 +4,16 @@ import { useState, useEffect, useRef } from "react";
 // 취향 태그 풀
 const TAGS = {
   분위기: ["조용한", "신나는", "낭만적인", "웃긴", "설레는", "편안한"],
-  활동: ["먹기", "걷기", "보기", "만들기", "배우기", "놀기"],
+  활동: ["먹기", "걷기", "보기", "만들기", "배우기", "놀기", "문화/축제"],
   에너지: ["집에서 쉬고 싶음", "살짝 나가고 싶음", "신나게 돌아다니고 싶음"],
   예산: ["공짜면 최고", "3만원 이하", "10만원 이하", "돈 좀 써도 됨"],
+  지역: ["전국", "서울", "부산", "대구", "인천", "광주", "대전", "울산", "세종", "경기", "강원", "충북", "충남", "전북", "전남", "경북", "경남", "제주"],
 };
 
 export default function DateThemeApp() {
   const [step, setStep] = useState("start");
   const [taste, setTaste] = useState<any>({ 분위기: [], 활동: [] });
-  const [condition, setCondition] = useState<any>({ 에너지: "", 예산: "", mode: "" });
+  const [condition, setCondition] = useState<any>({ 에너지: "", 예산: "", 지역: "전국", mode: "" });
   const [result, setResult] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [rolling, setRolling] = useState(false);
@@ -379,6 +380,30 @@ export default function DateThemeApp() {
                     key={v}
                     className={`tag-btn ${condition.예산 === v ? "active" : ""}`}
                     onClick={() => setCond("예산", v)}
+                  >
+                    {v}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 지역 (문화생활/축제 연동) */}
+            <div style={{ marginBottom: 40, background: "#F9FAFB", padding: "20px", borderRadius: "16px", border: "1px solid #F2F4F6" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                <p style={{ fontSize: 14, fontWeight: 600, color: "#333D4B", margin: 0 }}>🎪 근처 지역축제/전시 찾아보기</p>
+              </div>
+              <p style={{ fontSize: 13, color: "#8B95A1", marginBottom: 16 }}>해당 지역의 실제 행사 정보를 데이트 코스에 반영합니다.</p>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                {TAGS.지역.map(v => (
+                  <button
+                    key={v}
+                    style={{
+                      padding: "8px 14px", borderRadius: "20px", border: "none", fontSize: "14px", fontWeight: 500, cursor: "pointer",
+                      background: condition.지역 === v ? "#3182F6" : "#FFFFFF",
+                      color: condition.지역 === v ? "#FFFFFF" : "#4E5968",
+                      boxShadow: "0 1px 3px rgba(0,0,0,0.05)"
+                    }}
+                    onClick={() => setCond("지역", v)}
                   >
                     {v}
                   </button>
