@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 1500);
 
-      const tourUrl = `http://apis.data.go.kr/B551011/KorService1/searchFestival1?serviceKey=${tourKey}&MobileOS=ETC&MobileApp=TodayDate&_type=json&eventStartDate=${todayStr}&numOfRows=5${areaParam}`;
+      const tourUrl = `https://apis.data.go.kr/B551011/KorService2/searchFestival2?serviceKey=${tourKey}&MobileOS=ETC&MobileApp=TodayDate&_type=json&eventStartDate=${todayStr}&numOfRows=5${areaParam}`;
       const tourRes = await fetch(tourUrl, { signal: controller.signal });
       clearTimeout(timeoutId);
       
