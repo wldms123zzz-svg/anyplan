@@ -4,7 +4,7 @@ export async function POST(req: NextRequest) {
   try {
     const { region, month } = await req.json();
     const tourKey = process.env.TOUR_API_KEY;
-    
+
     if (!tourKey) {
       return NextResponse.json({ error: "API 키가 없습니다." }, { status: 500 });
     }
@@ -21,16 +21,16 @@ export async function POST(req: NextRequest) {
       "서울": "1", "인천": "2", "대전": "3", "대구": "4", "광주": "5", "부산": "6", "울산": "7", "세종": "8",
       "경기": "31", "강원": "32", "충북": "33", "충남": "34", "경북": "35", "경남": "36", "전북": "37", "전남": "38", "제주": "39"
     };
-    
+
     const areaCode = AREA_CODES[region] || "";
     const areaParam = areaCode ? `&areaCode=${areaCode}` : "";
-    
+
     // 1. 아주 넓은 범위로 검색 (contentTypeId 15: 행사/전시/축제)
     const tourUrl = `https://apis.data.go.kr/B551011/KorService2/areaBasedList2?serviceKey=${tourKey}&MobileOS=ETC&MobileApp=TodayDate&_type=json&contentTypeId=15&numOfRows=100&listYN=Y&arrange=Q${areaParam}`;
-    
+
     const res = await fetch(tourUrl);
     const data = await res.json();
-    
+
     // API 응답 구조가 복잡할 수 있으므로 안전하게 추출
     let allItems = data?.response?.body?.items?.item || [];
     if (!Array.isArray(allItems)) {
@@ -41,13 +41,13 @@ export async function POST(req: NextRequest) {
     let filtered = allItems.filter((item: any) => {
       const start = item.eventstartdate || "";
       const end = item.eventenddate || "";
-      return start.substring(4, 6) === targetMonthStr || end.substring(4, 6) === targetMonthStr || 
-             (start <= `2026${targetMonthStr}31` && end >= `2026${targetMonthStr}01`);
+      return start.substring(4, 6) === targetMonthStr || end.substring(4, 6) === targetMonthStr ||
+        (start <= `2026${targetMonthStr}31` && end >= `2026${targetMonthStr}01`);
     });
 
     // 필터링 결과가 너무 적으면 전체 리스트에서 10개 강제 추출
     const resultSource = filtered.length > 3 ? filtered : allItems;
-    
+
     const seenTitles = new Set();
     const resultItems = resultSource.filter((item: any) => {
       if (!item.title || seenTitles.has(item.title)) return false;
