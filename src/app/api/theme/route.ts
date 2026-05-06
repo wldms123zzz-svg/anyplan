@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
-  const { taste, condition } = await req.json();
+  const { profile, taste, condition } = await req.json();
 
   // 입력값 검증
-  if (!condition?.에너지 || !condition?.예산 || !condition?.mode) {
+  if (!condition?.myBody || !condition?.예산 || !condition?.mode) {
     return NextResponse.json({ error: "필수 값 누락" }, { status: 400 });
   }
 
@@ -50,26 +50,44 @@ export async function POST(req: NextRequest) {
     festivalContext = `\n(참고: 현재 외부 API를 통한 실시간 축제 정보 로드에 실패했습니다. 하지만 네가 알고 있는 **${region} 지역의 유명한 축제, 팝업스토어, 야시장, 특별 전시회** 등 실제 존재하는 로컬 핫플레이스 정보를 최대한 동원해서 아주 리얼하고 구체적인 데이트 코스를 짜줘. "카페 가기" 같은 뻔한 내용 대신, ${region}에 실제로 있는 장소 이름을 언급하면 더 좋아.)\n`;
   }
 
-  const prompt = `너는 커플 데이트 테마 제안봇이야. 아래 취향을 보고 오늘의 데이트 테마 하나를 뽑아줘.
+  // 관계 및 나이차 추론 로직
+  const ageDiff = Math.abs((profile?.myAge || 20) - (profile?.partnerAge || 20));
+  const isFamily = ageDiff >= 20;
+  const relationshipType = isFamily ? "나이차가 많이 나는 가족(부모님 등)과의 소중한 외출" : "커플 데이트";
+  const focusPoint = isFamily 
+    ? "부모님이나 가족이 함께 무리 없이 즐길 수 있는 동선과 편안함을 최우선으로 고려해줘." 
+    : "커플이 즐기기 좋은 로맨틱하거나 재밌는 코스로 짜줘.";
 
-취향: ${taste?.분위기?.join(", ") || "무관"} / ${taste?.활동?.join(", ") || "무관"}
-에너지: ${condition.에너지}
+  const prompt = `너는 외출/데이트 코스 제안봇이야. 아래 정보를 보고 오늘 딱 맞는 코스 하나를 뽑아줘.
+
+[프로필 정보]
+관계: ${relationshipType}
+나: ${profile?.myAge || 20}세 ${profile?.myGender || "무관"}
+동행인: ${profile?.partnerAge || 20}세 ${profile?.partnerGender || "무관"}
+
+[취향 및 무드]
+원하는 무드: ${taste?.무드?.join(", ") || "무관"}
+활동: ${taste?.활동?.join(", ") || "무관"}
+
+[컨디션 및 상황]
+내 몸상태: ${condition.myBody}
+동행인 몸상태: ${condition.partnerBody}
 예산: ${condition.예산}
-모드: ${condition.mode === "today" ? "오늘 바로 할 수 있는 것" : "미리 계획하는 데이트"}
+상황: ${condition.mode === "today" ? "오늘 바로 할 수 있는 것" : "미리 계획하는 외출"}
 ${festivalContext}
-테마는 구체적이고 참신하게. "카페 가기" 같은 뻔한 건 금지.
-예시: "새벽 편의점 투어 + 공원 돗자리 브이로그 찍기", "집에서 나라별 야식 배달 시켜먹으며 여행 계획 짜기", "볼링 내기 후 진 사람이 쏘는 마라탕"
+테마는 구체적이고 참신하게. "카페 가기" 같은 뻔한 건 금지. ${focusPoint}
+예시: "새벽 편의점 투어 + 공원 돗자리 브이로그 찍기", "집에서 나라별 야식 배달 시켜먹으며 여행 계획 짜기" (이 예시들은 참고만 하고, 프로필과 컨디션에 꼭 맞춰줘)
 
 JSON만 응답:
 {
   "theme": "테마 이름 (짧고 강렬하게)",
   "emoji": "테마 대표 이모지 하나",
   "desc": "한 줄 설명 (뭘 하는 건지)",
-  "vibe": "이 데이트의 분위기 키워드 3개 (예: #즉흥적 #웃김 #배부름)",
+  "vibe": "이 외출의 분위기 키워드 3개 (예: #편안함 #가족여행 #힐링)",
   "doThis": ["구체적으로 할 것 1", "할 것 2", "할 것 3"],
-  "talkTopic": "이 데이트에서 나누면 좋을 대화 주제",
-  "randomTwist": "여기에 이걸 추가하면 더 재밌어짐 (엉뚱한 아이디어 하나)",
-  "perfectFor": "이런 커플에게 딱 (한 줄)"
+  "talkTopic": "이 곳에서 나누면 좋을 대화 주제",
+  "randomTwist": "여기에 이걸 추가하면 더 재밌거나 감동적임",
+  "perfectFor": "이런 사람들에게 딱 (한 줄)"
 }`;
 
   try {

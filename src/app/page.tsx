@@ -3,17 +3,18 @@ import { useState, useEffect, useRef } from "react";
 
 // 취향 태그 풀
 const TAGS = {
-  분위기: ["조용한", "신나는", "낭만적인", "웃긴", "설레는", "편안한"],
+  무드: ["로맨틱한", "신나는", "차분한", "웃음가득", "힐링되는", "이색적인"],
   활동: ["먹기", "걷기", "보기", "만들기", "배우기", "놀기", "문화/축제"],
-  에너지: ["집에서 쉬고 싶음", "살짝 나가고 싶음", "신나게 돌아다니고 싶음"],
-  예산: ["공짜면 최고", "3만원 이하", "10만원 이하", "돈 좀 써도 됨"],
+  몸상태: ["완전 쌩쌩함 🏃", "적당함 🚶", "조금 피곤함 🥱", "녹초 상태 🫠"],
+  예산: ["공짜면 좋지 💸", "오늘만큼은 돈을 쓸래요! 💳"],
   지역: ["전국", "서울", "부산", "대구", "인천", "광주", "대전", "울산", "세종", "경기", "강원", "충북", "충남", "전북", "전남", "경북", "경남", "제주"],
 };
 
 export default function DateThemeApp() {
   const [step, setStep] = useState("start");
-  const [taste, setTaste] = useState<any>({ 분위기: [], 활동: [] });
-  const [condition, setCondition] = useState<any>({ 에너지: "", 예산: "", 지역: "전국", mode: "" });
+  const [profile, setProfile] = useState({ myAge: 25, myGender: "여", partnerAge: 25, partnerGender: "남" });
+  const [taste, setTaste] = useState<any>({ 무드: [], 활동: [] });
+  const [condition, setCondition] = useState<any>({ myBody: "", partnerBody: "", 예산: "", 지역: "전국", mode: "" });
   const [result, setResult] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [rolling, setRolling] = useState(false);
@@ -57,25 +58,36 @@ export default function DateThemeApp() {
     setCondition((p: any) => ({ ...p, [key]: val }));
   };
 
-  const canGoResult = condition.에너지 && condition.예산 && condition.mode;
+  const reset = () => {
+    triggerHaptic();
+    setStep("start");
+    setTaste({ 무드: [], 활동: [] });
+    setCondition({ myBody: "", partnerBody: "", 예산: "", 지역: "전국", mode: "" });
+    setResult(null);
+  };
 
   const rollTheme = async () => {
+    if (!profile.myAge || !profile.partnerAge) {
+      setErrorMsg("나이를 정확히 입력해주세요.");
+      return;
+    }
+    if (!condition.myBody || !condition.partnerBody || !condition.예산 || !condition.mode) {
+      setErrorMsg("컨디션과 상황을 모두 선택해주세요.");
+      return;
+    }
+
     triggerHaptic("success");
     setLoading(true);
     setRolling(true);
     setErrorMsg("");
-
-    setTimeout(() => {
-      setRolling(false);
-      triggerHaptic("success");
-    }, 1200);
+    setStep("result");
 
     try {
       // 넥스트 API 라우트로 요청
       const res = await fetch("/api/theme", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ taste, condition }),
+        body: JSON.stringify({ profile, taste, condition }),
       });
       
       const data = await res.json();
@@ -275,13 +287,18 @@ export default function DateThemeApp() {
         <div style={{ paddingTop: 56, paddingBottom: 24 }}>
           {step === "start" && (
             <h1 style={{ fontSize: 28, fontWeight: 700, lineHeight: 1.3, color: "#191F28" }}>
-              데이트 테마가<br />고민이신가요? 🎲
+              데이트/외출 테마가<br />고민이신가요? 🎲
             </h1>
           )}
           {step !== "start" && step !== "result" && (
             <div style={{ display: "flex", gap: 6, marginTop: 20 }}>
-              {["taste", "condition"].map((s, i) => (
-                <div key={i} className={`step-dot ${step === s || (s === "taste" && step === "condition") ? "active" : ""}`} />
+              {["profile", "taste", "condition"].map((s, i) => (
+                <div key={i} className={`step-dot ${
+                  step === s || 
+                  (s === "profile" && (step === "taste" || step === "condition")) ||
+                  (s === "taste" && step === "condition") 
+                  ? "active" : ""
+                }`} />
               ))}
             </div>
           )}
@@ -315,8 +332,62 @@ export default function DateThemeApp() {
               ))}
             </div>
 
-            <button className="roll-btn" onClick={() => { triggerHaptic(); setStep("taste"); }}>
+            <button className="roll-btn" onClick={() => { triggerHaptic(); setStep("profile"); }}>
               시작하기
+            </button>
+          </div>
+        )}
+
+        {/* 프로필 선택 */}
+        {step === "profile" && (
+          <div className="fade-up">
+            <h2 className="section-title">누구와 함께 가나요?</h2>
+            <p className="section-desc">나이 차이에 따라 맞춤형(예: 부모님)으로 제안해 드려요.</p>
+
+            <div style={{ marginBottom: 32, background: "#FFFFFF", padding: "24px", borderRadius: "16px", boxShadow: "0 2px 8px rgba(0,0,0,0.02)" }}>
+              <p style={{ fontSize: 16, fontWeight: 700, color: "#333D4B", marginBottom: 16 }}>😎 나의 정보</p>
+              <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                <input 
+                  type="number" 
+                  value={profile.myAge} 
+                  onChange={e => setProfile({...profile, myAge: parseInt(e.target.value) || 0})}
+                  style={{ width: "80px", padding: "12px", borderRadius: "12px", border: "1px solid #E5E8EB", fontSize: "16px" }}
+                /> <span style={{ color: "#4E5968", fontWeight: 500 }}>세</span>
+                <div style={{ display: "flex", gap: 8, marginLeft: "auto" }}>
+                  {["여", "남"].map(g => (
+                    <button 
+                      key={g} 
+                      onClick={() => setProfile({...profile, myGender: g})}
+                      style={{ padding: "10px 16px", borderRadius: "10px", border: "none", background: profile.myGender === g ? "#3182F6" : "#F2F4F6", color: profile.myGender === g ? "#FFF" : "#4E5968", fontWeight: 600 }}
+                    >{g}</button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div style={{ marginBottom: 32, background: "#FFFFFF", padding: "24px", borderRadius: "16px", boxShadow: "0 2px 8px rgba(0,0,0,0.02)" }}>
+              <p style={{ fontSize: 16, fontWeight: 700, color: "#333D4B", marginBottom: 16 }}>🧑‍🤝‍🧑 동행인 정보</p>
+              <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                <input 
+                  type="number" 
+                  value={profile.partnerAge} 
+                  onChange={e => setProfile({...profile, partnerAge: parseInt(e.target.value) || 0})}
+                  style={{ width: "80px", padding: "12px", borderRadius: "12px", border: "1px solid #E5E8EB", fontSize: "16px" }}
+                /> <span style={{ color: "#4E5968", fontWeight: 500 }}>세</span>
+                <div style={{ display: "flex", gap: 8, marginLeft: "auto" }}>
+                  {["여", "남"].map(g => (
+                    <button 
+                      key={g} 
+                      onClick={() => setProfile({...profile, partnerGender: g})}
+                      style={{ padding: "10px 16px", borderRadius: "10px", border: "none", background: profile.partnerGender === g ? "#F04452" : "#F2F4F6", color: profile.partnerGender === g ? "#FFF" : "#4E5968", fontWeight: 600 }}
+                    >{g}</button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <button className="roll-btn" onClick={() => { triggerHaptic(); setStep("taste"); }}>
+              다음
             </button>
           </div>
         )}
@@ -324,10 +395,10 @@ export default function DateThemeApp() {
         {/* 취향 선택 */}
         {step === "taste" && (
           <div className="fade-up">
-            <h2 className="section-title">우리 취향</h2>
-            <p className="section-desc">여러 개 고르셔도 좋아요. (안 골라도 괜찮아요)</p>
+            <h2 className="section-title">오늘의 데이트 무드</h2>
+            <p className="section-desc">어떤 분위기를 원하시나요? (다중 선택 가능)</p>
 
-            {Object.entries({ 분위기: TAGS.분위기, 활동: TAGS.활동 }).map(([cat, vals]) => (
+            {Object.entries({ 무드: TAGS.무드, 활동: TAGS.활동 }).map(([cat, vals]) => (
               <div key={cat} style={{ marginBottom: 32 }}>
                 <p style={{ fontSize: 14, fontWeight: 600, color: "#4E5968", marginBottom: 12 }}>{cat}</p>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
@@ -344,28 +415,52 @@ export default function DateThemeApp() {
               </div>
             ))}
 
-            <button className="roll-btn" style={{ marginTop: 24 }} onClick={() => { triggerHaptic(); setStep("condition"); }}>
-              다음
-            </button>
+            <div style={{ display: "flex", gap: 12 }}>
+              <button
+                onClick={() => { triggerHaptic(); setStep("profile"); }}
+                style={{ flex: "0 0 auto", padding: "18px 24px", borderRadius: "16px", border: "none", background: "#E5E8EB", color: "#4E5968", cursor: "pointer", fontSize: 16, fontWeight: 600 }}
+              >
+                이전
+              </button>
+              <button className="roll-btn" style={{ flex: 1 }} onClick={() => { triggerHaptic(); setStep("condition"); }}>
+                다음
+              </button>
+            </div>
           </div>
         )}
 
         {/* 컨디션 선택 */}
         {step === "condition" && (
           <div className="fade-up">
-            <h2 className="section-title">오늘 컨디션</h2>
+            <h2 className="section-title">오늘 컨디션 & 예산</h2>
             <p className="section-desc">현재 기분과 상황을 솔직하게 골라주세요.</p>
 
-            {/* 에너지 */}
+            {/* 몸 상태 */}
             <div style={{ marginBottom: 32 }}>
-              <p style={{ fontSize: 14, fontWeight: 600, color: "#4E5968", marginBottom: 12 }}>에너지</p>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {TAGS.에너지.map(v => (
+              <p style={{ fontSize: 14, fontWeight: 600, color: "#4E5968", marginBottom: 12 }}>내 몸 상태</p>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                {TAGS.몸상태.map(v => (
                   <button
                     key={v}
-                    className={`tag-btn ${condition.에너지 === v ? "active" : ""}`}
-                    style={{ textAlign: "left", padding: "16px 20px" }}
-                    onClick={() => setCond("에너지", v)}
+                    className={`tag-btn ${condition.myBody === v ? "active" : ""}`}
+                    style={{ textAlign: "center", padding: "14px 10px", fontSize: "14px" }}
+                    onClick={() => setCond("myBody", v)}
+                  >
+                    {v}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ marginBottom: 32 }}>
+              <p style={{ fontSize: 14, fontWeight: 600, color: "#4E5968", marginBottom: 12 }}>동행인 몸 상태</p>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                {TAGS.몸상태.map(v => (
+                  <button
+                    key={v}
+                    className={`tag-btn ${condition.partnerBody === v ? "active" : ""}`}
+                    style={{ textAlign: "center", padding: "14px 10px", fontSize: "14px" }}
+                    onClick={() => setCond("partnerBody", v)}
                   >
                     {v}
                   </button>
@@ -376,11 +471,12 @@ export default function DateThemeApp() {
             {/* 예산 */}
             <div style={{ marginBottom: 32 }}>
               <p style={{ fontSize: 14, fontWeight: 600, color: "#4E5968", marginBottom: 12 }}>예산</p>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {TAGS.예산.map(v => (
                   <button
                     key={v}
                     className={`tag-btn ${condition.예산 === v ? "active" : ""}`}
+                    style={{ padding: "18px 20px", fontSize: "16px", fontWeight: condition.예산 === v ? 700 : 500 }}
                     onClick={() => setCond("예산", v)}
                   >
                     {v}
@@ -445,7 +541,7 @@ export default function DateThemeApp() {
               <button
                 className="roll-btn"
                 style={{ flex: 1 }}
-                disabled={!canGoResult || loading}
+                disabled={!condition.myBody || !condition.partnerBody || !condition.예산 || !condition.mode || loading}
                 onClick={rollTheme}
               >
                 {loading ? "AI가 결과 찾는 중..." : "테마 뽑기"}
