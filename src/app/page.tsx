@@ -27,6 +27,8 @@ export default function DateThemeApp() {
   const [festivals, setFestivals] = useState<any[]>([]);
   const [showFestivals, setShowFestivals] = useState(false);
   const [festLoading, setFestLoading] = useState(false);
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
+  const [festMessage, setFestMessage] = useState("");
   const diceRef = useRef<HTMLDivElement>(null);
 
   // 공유된 데이터 로드 (URL 파라미터)
@@ -153,7 +155,7 @@ export default function DateThemeApp() {
 
     try {
       // API 호출 시도
-      const res = await fetch("https://anyplan-git-main-wldms123zzz-svgs-projects.vercel.app/api/theme", {
+      const res = await fetch("/api/theme", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ profile, taste, condition }),
@@ -181,19 +183,29 @@ export default function DateThemeApp() {
 
 
 
-  const fetchFestivals = async () => {
+  const fetchFestivals = async (month?: number) => {
     if (festLoading) return;
+    const targetMonth = month || selectedMonth;
+    if (month) setSelectedMonth(month);
+    
     triggerHaptic();
     setFestLoading(true);
     setShowFestivals(true);
+    setFestMessage("");
+
     try {
-      const res = await fetch("https://anyplan-git-main-wldms123zzz-svgs-projects.vercel.app/api/festivals", {
+      const res = await fetch("/api/festivals", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ region: condition.지역 }),
+        body: JSON.stringify({ region: condition.지역, month: targetMonth }),
       });
       const data = await res.json();
-      setFestivals(Array.isArray(data) ? data : []);
+      if (data.message) {
+        setFestMessage(data.message);
+        setFestivals([]);
+      } else {
+        setFestivals(Array.isArray(data) ? data : []);
+      }
     } catch (err) {
       console.error(err);
       setFestivals([]);
@@ -837,7 +849,29 @@ export default function DateThemeApp() {
               </button>
             </div>
             
-            {festLoading ? (
+            <div style={{ display: "flex", overflowX: "auto", gap: 12, marginBottom: 24, paddingBottom: 8, msOverflowStyle: "none", scrollbarWidth: "none" }} className="hide-scrollbar">
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(m => (
+                <button
+                  key={m}
+                  onClick={() => fetchFestivals(m)}
+                  style={{
+                    flex: "0 0 auto", padding: "8px 16px", borderRadius: "12px", border: "none",
+                    background: selectedMonth === m ? "#3182F6" : "#F2F4F6",
+                    color: selectedMonth === m ? "#FFFFFF" : "#4E5968",
+                    fontWeight: 600, fontSize: 14, cursor: "pointer", transition: "all 0.2s"
+                  }}
+                >
+                  {m}월
+                </button>
+              ))}
+            </div>
+            
+            {festMessage ? (
+              <div style={{ textAlign: "center", padding: "60px 20px", color: "#8B95A1", lineHeight: 1.6 }}>
+                <div style={{ fontSize: 40, marginBottom: 16 }}>🗺️</div>
+                {festMessage}
+              </div>
+            ) : festLoading ? (
               <div style={{ textAlign: "center", padding: "40px 0" }}>
                 <div className="rolling" style={{ fontSize: 40, marginBottom: 16 }}>🔍</div>
                 <p style={{ color: "#8B95A1" }}>데이터를 불러오는 중...</p>
@@ -865,7 +899,7 @@ export default function DateThemeApp() {
               </div>
             ) : (
               <div style={{ textAlign: "center", padding: "40px 0", color: "#8B95A1" }}>
-                아쉽게도 현재 예정된 축제가 없습니다. 🥲
+                아쉽게도 {selectedMonth}월엔 예정된 축제가 없습니다. 🥲
               </div>
             )}
           </div>
@@ -873,6 +907,7 @@ export default function DateThemeApp() {
       )}
       
       <style jsx global>{`
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
         @keyframes slideUp {
           from { transform: translateY(100%); }
           to { transform: translateY(0); }

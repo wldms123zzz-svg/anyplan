@@ -2,18 +2,21 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
   try {
-    const { region } = await req.json();
+    const { region, month } = await req.json();
     const tourKey = process.env.TOUR_API_KEY;
     
     if (!tourKey) {
       return NextResponse.json({ error: "API 키가 없습니다." }, { status: 500 });
     }
 
+    if (!region || region === "전국") {
+      return NextResponse.json({ message: "지역을 선택하시면 해당 지역의 상세 축제 정보를 보실 수 있습니다." });
+    }
+
     const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, "0");
-    const day = String(today.getDate()).padStart(2, "0");
-    const todayStr = `${year}${month}${day}`;
+    const targetYear = today.getFullYear();
+    const targetMonth = month || (today.getMonth() + 1);
+    const startDate = `${targetYear}${String(targetMonth).padStart(2, "0")}01`;
 
     const AREA_CODES: Record<string, string> = {
       "서울": "1", "인천": "2", "대전": "3", "대구": "4", "광주": "5", "부산": "6", "울산": "7", "세종": "8",
@@ -21,12 +24,21 @@ export async function POST(req: NextRequest) {
     };
     
     const areaParam = (region && AREA_CODES[region]) ? `&areaCode=${AREA_CODES[region]}` : "";
-    // searchFestival2 대신 더 포괄적인 areaBasedList2 (contentTypeId=15: 축제/행사) 사용
-    const tourUrl = `https://apis.data.go.kr/B551011/KorService2/areaBasedList2?serviceKey=${tourKey}&MobileOS=ETC&MobileApp=TodayDate&_type=json&contentTypeId=15&numOfRows=10&listYN=Y&arrange=Q${areaParam}`;
+    
+    // 특정 월의 축제 조회를 위해 searchFestival2 사용
+    const tourUrl = `https://apis.data.go.kr/B551011/KorService2/searchFestival2?serviceKey=${tourKey}&MobileOS=ETC&MobileApp=TodayDate&_type=json&eventStartDate=${startDate}&numOfRows=20${areaParam}`;
 
     const res = await fetch(tourUrl);
     const data = await res.json();
-    const items = data?.response?.body?.items?.item || [];
+    let items = data?.response?.body?.items?.item || [];
+
+    // 해당 월에 속하는 것만 필터링 (startDate는 이후 정보를 다 가져오므로)
+    if (Array.isArray(items)) {
+      items = items.filter((item: any) => {
+        const start = item.eventstartdate; // YYYYMMDD
+        return start.substring(4, 6) === String(targetMonth).padStart(2, "0");
+      });
+    }
 
     const result = NextResponse.json(items);
     result.headers.set("Access-Control-Allow-Origin", "*");
