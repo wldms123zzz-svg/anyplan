@@ -14,7 +14,7 @@ const TAGS = {
 export default function DateThemeApp() {
   const [step, setStep] = useState("start");
   const [profile, setProfile] = useState({ myAge: 25, myGender: "여", partnerAge: 25, partnerGender: "남" });
-  const [taste, setTaste] = useState<any>({ 무드: [], 활동: [] });
+  const [taste, setTaste] = useState<{ 무드: string[]; 활동: string[] }>({ 무드: [], 활동: [] });
   const [condition, setCondition] = useState<any>({ myBody: "", partnerBody: "", 예산: "", 지역: "전국", mode: "", 이동수단: "" });
   const [result, setResult] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -906,7 +906,7 @@ export default function DateThemeApp() {
                 {festivals.map((f, i) => (
                   <div key={i} style={{ display: "flex", gap: 16, background: "#F9FAFB", padding: "16px", borderRadius: "16px" }}>
                     {f.firstimage ? (
-                      <img src={f.firstimage} style={{ width: 80, height: 80, borderRadius: 12, objectFit: "cover" }} />
+                      <img src={f.firstimage} alt={f.title} style={{ width: 80, height: 80, borderRadius: 12, objectFit: "cover" }} />
                     ) : (
                       <div style={{ width: 80, height: 80, borderRadius: 12, background: "#E5E8EB", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32 }}>🎪</div>
                     )}
