@@ -657,7 +657,7 @@ export default function DateThemeApp() {
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                 <p style={{ fontSize: 14, fontWeight: 600, color: "#4E5968", margin: 0 }}>상황 및 축제 정보</p>
                 <button 
-                  onClick={fetchFestivals}
+                  onClick={() => fetchFestivals()}
                   style={{ 
                     fontSize: 12, padding: "6px 10px", borderRadius: "8px", border: "none", 
                     background: "#F2F4F6", color: "#3182F6", fontWeight: 600, cursor: "pointer" 
