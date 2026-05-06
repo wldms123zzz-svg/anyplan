@@ -697,15 +697,17 @@ export default function DateThemeApp() {
             <div style={{ marginBottom: 40 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                 <p style={{ fontSize: 14, fontWeight: 600, color: "#4E5968", margin: 0 }}>상황 및 축제 정보</p>
-                <button 
-                  onClick={() => fetchFestivals()}
-                  style={{ 
-                    fontSize: 12, padding: "6px 10px", borderRadius: "8px", border: "none", 
-                    background: "#F2F4F6", color: "#3182F6", fontWeight: 600, cursor: "pointer" 
-                  }}
-                >
-                  🎭 다가오는 지역축제
-                </button>
+                {condition.지역 && condition.지역 !== "전국" && (
+                  <button 
+                    onClick={() => fetchFestivals()}
+                    style={{ 
+                      fontSize: 12, padding: "6px 10px", borderRadius: "8px", border: "none", 
+                      background: "#F2F4F6", color: "#3182F6", fontWeight: 600, cursor: "pointer" 
+                    }}
+                  >
+                    🎭 {condition.지역} 다가오는 축제
+                  </button>
+                )}
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 {[
