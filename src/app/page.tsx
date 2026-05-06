@@ -22,8 +22,11 @@ export default function DateThemeApp() {
   const [isSharing, setIsSharing] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [partnerVote, setPartnerVote] = useState<string | null>(null); // 'agree' | 'disagree'
-  const [countdown, setCountdown] = useState(5);
+  const [countdown, setCountdown] = useState(10);
   const [loadingTip, setLoadingTextTip] = useState("");
+  const [festivals, setFestivals] = useState<any[]>([]);
+  const [showFestivals, setShowFestivals] = useState(false);
+  const [festLoading, setFestLoading] = useState(false);
   const diceRef = useRef<HTMLDivElement>(null);
 
   // 공유된 데이터 로드 (URL 파라미터)
@@ -177,6 +180,27 @@ export default function DateThemeApp() {
   };
 
 
+
+  const fetchFestivals = async () => {
+    if (festLoading) return;
+    triggerHaptic();
+    setFestLoading(true);
+    setShowFestivals(true);
+    try {
+      const res = await fetch("https://anyplan-git-main-wldms123zzz-svgs-projects.vercel.app/api/festivals", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ region: condition.지역 }),
+      });
+      const data = await res.json();
+      setFestivals(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error(err);
+      setFestivals([]);
+    } finally {
+      setFestLoading(false);
+    }
+  };
 
   const reroll = () => {
     triggerHaptic("success");
@@ -616,9 +640,20 @@ export default function DateThemeApp() {
               </div>
             </div>
 
-            {/* 모드 */}
+            {/* 모드 및 축제 정보 */}
             <div style={{ marginBottom: 40 }}>
-              <p style={{ fontSize: 14, fontWeight: 600, color: "#4E5968", marginBottom: 12 }}>상황</p>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                <p style={{ fontSize: 14, fontWeight: 600, color: "#4E5968", margin: 0 }}>상황 및 축제 정보</p>
+                <button 
+                  onClick={fetchFestivals}
+                  style={{ 
+                    fontSize: 12, padding: "6px 10px", borderRadius: "8px", border: "none", 
+                    background: "#F2F4F6", color: "#3182F6", fontWeight: 600, cursor: "pointer" 
+                  }}
+                >
+                  🎭 다가오는 지역축제
+                </button>
+              </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 {[
                   { id: "today", emoji: "⚡️", label: "오늘 바로", sub: "지금 당장 할 수 있는" },
@@ -632,7 +667,7 @@ export default function DateThemeApp() {
                   >
                     <div style={{ fontSize: 28, marginBottom: 12 }}>{m.emoji}</div>
                     <div style={{ fontSize: 16, fontWeight: 600, color: condition.mode === m.id ? "#3182F6" : "#333D4B", marginBottom: 4 }}>{m.label}</div>
-                    <div style={{ fontSize: 13, color: condition.mode === m.id ? "#8AABF5" : "#8B95A1" }}>{m.sub}</div>
+                    <div style={{ fontSize: 13, color: condition.mode === m.id ? "#8B95A1" : "#8B95A1" }}>{m.sub}</div>
                   </button>
                 ))}
               </div>
@@ -774,6 +809,73 @@ export default function DateThemeApp() {
         )}
 
       </div>
+      {/* 축제 모달 */}
+      {showFestivals && (
+        <div style={{ 
+          position: "fixed", top: 0, left: 0, right: 0, bottom: 0, 
+          background: "rgba(0,0,0,0.5)", z-index: 10000, 
+          display: "flex", alignItems: "flex-end", justifyContent: "center"
+        }} onClick={() => setShowFestivals(false)}>
+          <div 
+            style={{ 
+              width: "100%", maxWidth: 480, background: "#FFFFFF", 
+              borderTopLeftRadius: 24, borderTopRightRadius: 24, 
+              padding: "32px 24px", minHeight: "60vh", maxHeight: "85vh", 
+              overflowY: "auto", animation: "slideUp 0.3s ease-out" 
+            }} 
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+              <h3 style={{ fontSize: 20, fontWeight: 700, color: "#191F28", margin: 0 }}>
+                {condition.지역} 다가오는 축제 🎭
+              </h3>
+              <button 
+                onClick={() => setShowFestivals(false)}
+                style={{ background: "none", border: "none", fontSize: 24, color: "#8B95A1", cursor: "pointer" }}
+              >
+                ✕
+              </button>
+            </div>
+            
+            {festLoading ? (
+              <div style={{ textAlign: "center", padding: "40px 0" }}>
+                <div className="rolling" style={{ fontSize: 40, marginBottom: 16 }}>🔍</div>
+                <p style={{ color: "#8B95A1" }}>데이터를 불러오는 중...</p>
+              </div>
+            ) : festivals.length > 0 ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                {festivals.map((f, i) => (
+                  <div key={i} style={{ display: "flex", gap: 16, background: "#F9FAFB", padding: "16px", borderRadius: "16px" }}>
+                    {f.firstimage ? (
+                      <img src={f.firstimage} style={{ width: 80, height: 80, borderRadius: 12, objectFit: "cover" }} />
+                    ) : (
+                      <div style={{ width: 80, height: 80, borderRadius: 12, background: "#E5E8EB", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32 }}>🎪</div>
+                    )}
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 13, color: "#3182F6", fontWeight: 600, marginBottom: 4 }}>
+                        {f.eventstartdate.slice(4,6)}.{f.eventstartdate.slice(6,8)} ~ {f.eventenddate.slice(4,6)}.{f.eventenddate.slice(6,8)}
+                      </div>
+                      <div style={{ fontSize: 16, fontWeight: 700, color: "#191F28", marginBottom: 4 }}>{f.title}</div>
+                      <div style={{ fontSize: 13, color: "#8B95A1" }}>{f.addr1}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{ textAlign: "center", padding: "40px 0", color: "#8B95A1" }}>
+                아쉽게도 현재 예정된 축제가 없습니다. 🥲
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+      
+      <style jsx global>{`
+        @keyframes slideUp {
+          from { transform: translateY(100%); }
+          to { transform: translateY(0); }
+        }
+      `}</style>
     </div>
   );
 }
