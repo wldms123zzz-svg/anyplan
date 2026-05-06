@@ -17,6 +17,7 @@ export default function DateThemeApp() {
   const [result, setResult] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [rolling, setRolling] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [partnerVote, setPartnerVote] = useState<string | null>(null); // 'agree' | 'disagree'
   const diceRef = useRef<HTMLDivElement>(null);
@@ -110,8 +111,13 @@ export default function DateThemeApp() {
   };
 
   const handleShare = async () => {
+    if (isSharing) return;
+    setIsSharing(true);
     triggerHaptic("light");
-    if (!result) return;
+    if (!result) {
+      setIsSharing(false);
+      return;
+    }
 
     // 데이터 인코딩 (Base64)
     const encodedData = btoa(unescape(encodeURIComponent(JSON.stringify(result))));
@@ -119,31 +125,27 @@ export default function DateThemeApp() {
     
     const shareText = `[오늘 뭐하지? 🎲]\n오늘의 추천 데이트: ${result.theme}\n\n${result.desc}\n${result.vibe}\n\n상대방의 의견을 들려주세요!\n${shareUrl}`;
     
-    if (typeof window !== "undefined" && (window as any).toss?.share) {
-      try {
+    try {
+      if (typeof window !== "undefined" && (window as any).toss?.share) {
         await (window as any).toss.share({
           text: shareText,
         });
-      } catch (err) {
-        console.error("Toss share failed", err);
-      }
-    } else if (navigator.share) {
-      try {
+      } else if (navigator.share) {
         await navigator.share({
           title: "오늘 뭐하지? 데이트 추천",
           text: shareText,
           url: shareUrl,
         });
-      } catch (err) {
-        console.error("Web share failed", err);
-      }
-    } else {
-      try {
+      } else {
         await navigator.clipboard.writeText(shareText);
         alert("공유 링크와 내용이 복사되었습니다!");
-      } catch (err) {
-        alert("공유하기를 지원하지 않는 환경입니다.");
       }
+    } catch (err) {
+      console.error("Share failed", err);
+      // 취소된 경우 에러 로그만 남김
+    } finally {
+      // 약간의 지연 후 상태 해제하여 중복 클릭 방지
+      setTimeout(() => setIsSharing(false), 500);
     }
   };
 
@@ -532,9 +534,10 @@ export default function DateThemeApp() {
               <button
                 className="roll-btn"
                 onClick={handleShare}
+                disabled={isSharing}
                 style={{ background: "#F2F4F6", color: "#3182F6", border: "1px solid #E8F3FF" }}
               >
-                결과 공유하기
+                {isSharing ? "공유 중..." : "결과 공유하기"}
               </button>
               <div style={{ display: "flex", gap: 12 }}>
                 <button
