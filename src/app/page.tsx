@@ -15,17 +15,40 @@ export default function DateThemeApp() {
   const [step, setStep] = useState("start");
   const [profile, setProfile] = useState({ myAge: 25, myGender: "여", partnerAge: 25, partnerGender: "남" });
   const [taste, setTaste] = useState<{ 무드: string[]; 활동: string[] }>({ 무드: [], 활동: [] });
-  const [condition, setCondition] = useState<any>({ myBody: "", partnerBody: "", 예산: "", 지역: "전국", mode: "", 이동수단: "" });
-  const [result, setResult] = useState<any>(null);
+  const [condition, setCondition] = useState<{
+    myBody: string;
+    partnerBody: string;
+    예산: string;
+    지역: string;
+    mode: string;
+    이동수단: string;
+  }>({ myBody: "", partnerBody: "", 예산: "", 지역: "전국", mode: "", 이동수단: "" });
+  const [result, setResult] = useState<{
+    theme: string;
+    emoji: string;
+    desc: string;
+    vibe: string;
+    doThis: string[];
+    transportInfo?: string;
+    talkTopic: string;
+    randomTwist: string;
+    perfectFor: string;
+  } | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadingText, setLoadingText] = useState("AI가 결과 찾는 중...");
   const [rolling, setRolling] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
-  const [partnerVote, setPartnerVote] = useState<string | null>(null); // 'agree' | 'disagree'
+  const [partnerVote, setPartnerVote] = useState<string | null>(null); 
   const [countdown, setCountdown] = useState(10);
   const [loadingTip, setLoadingTextTip] = useState("");
-  const [festivals, setFestivals] = useState<any[]>([]);
+  const [festivals, setFestivals] = useState<{
+    title: string;
+    addr1?: string;
+    firstimage?: string;
+    eventstartdate?: string;
+    eventenddate?: string;
+  }[]>([]);
   const [showFestivals, setShowFestivals] = useState(false);
   const [festLoading, setFestLoading] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
