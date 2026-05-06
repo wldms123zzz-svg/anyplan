@@ -172,6 +172,7 @@ export default function DateThemeApp() {
       setErrorMsg("연결 실패. Vercel에서 'Deployment Protection' 기능이 비활성화되었는지 확인해주세요.");
     } finally {
       setRolling(false);
+      setLoading(false);
     }
   };
 
