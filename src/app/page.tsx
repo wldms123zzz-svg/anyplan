@@ -149,7 +149,8 @@ export default function DateThemeApp() {
     // setStep("result"); // 데이터 받기 전까지는 기존 화면 유지 (오버레이가 덮음)
 
     try {
-      const res = await fetch("https://anyplan.vercel.app/api/theme", {
+      // API 호출 시도
+      const res = await fetch("https://anyplan-git-main-wldms123zzz-svgs-projects.vercel.app/api/theme", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ profile, taste, condition }),
@@ -166,9 +167,10 @@ export default function DateThemeApp() {
       triggerHaptic("success");
     } catch (err: any) {
       console.error(err);
-      setErrorMsg(err.message || "API 연결에 실패했습니다. (크레딧이나 키 설정을 확인해주세요)");
-    } finally {
+      // 에러 시 로딩창을 닫아야 에러 메시지가 사용자에게 보임
       setLoading(false);
+      setErrorMsg("연결 실패. Vercel에서 'Deployment Protection' 기능이 비활성화되었는지 확인해주세요.");
+    } finally {
       setRolling(false);
     }
   };
