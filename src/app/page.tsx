@@ -616,6 +616,14 @@ export default function DateThemeApp() {
               <p style={{ color: "#4E5968", fontSize: 15, lineHeight: 1.6 }}>🫶 {result.perfectFor}</p>
             </div>
 
+            {/* AI 할루시네이션 면책 문구 */}
+            <div style={{ textAlign: "center", marginBottom: 24 }}>
+              <p style={{ fontSize: 12, color: "#8B95A1", lineHeight: 1.5 }}>
+                ⚠️ AI가 제안한 특정 상호명(가게, 장소)은 현재 폐업했거나 정보가 다를 수 있습니다.<br />
+                방문 전 반드시 지도 앱에서 실제 상호명이 일치하는지 교차검증해 주세요!
+              </p>
+            </div>
+
             {/* 투표 버튼 (공유받은 경우) */}
             <div style={{ display: "flex", gap: 12, marginBottom: 20 }}>
               <button
