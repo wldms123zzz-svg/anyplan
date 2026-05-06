@@ -135,12 +135,12 @@ JSON만 응답:
     if (!match) throw new Error("JSON 파싱 실패");
 
     // CORS 헤더 설정
-    const response = NextResponse.json(JSON.parse(match[0]));
-    response.headers.set("Access-Control-Allow-Origin", "*"); // 실제 운영 시에는 특정 도메인으로 제한 권장
-    response.headers.set("Access-Control-Allow-Methods", "POST, OPTIONS");
-    response.headers.set("Access-Control-Allow-Headers", "Content-Type");
+    const res = NextResponse.json(JSON.parse(match[0]));
+    res.headers.set("Access-Control-Allow-Origin", "*"); // 실제 운영 시에는 특정 도메인으로 제한 권장
+    res.headers.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+    res.headers.set("Access-Control-Allow-Headers", "Content-Type");
     
-    return response;
+    return res;
   } catch (err: any) {
     console.error("Gemini API Error:", err);
     return NextResponse.json({ error: err.message || "테마 생성 실패" }, { status: 500 });
