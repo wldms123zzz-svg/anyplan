@@ -59,9 +59,27 @@ export async function POST(req: NextRequest) {
   const ageDiff = Math.abs((profile?.myAge || 20) - (profile?.partnerAge || 20));
   const isFamily = ageDiff >= 20;
   const relationshipType = isFamily ? "나이차가 많이 나는 가족(부모님 등)과의 소중한 외출" : "커플 데이트";
-  const focusPoint = isFamily 
     ? "부모님이나 가족이 함께 무리 없이 즐길 수 있는 동선과 편안함을 최우선으로 고려해줘." 
     : "커플이 즐기기 좋은 로맨틱하거나 재밌는 코스로 짜줘.";
+
+  // 3. 두루누비 API (걷기 여행길) 연동
+  let durunubiContext = "";
+  if (condition.이동수단?.includes("뚜벅이")) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 1500);
+      const duruUrl = `https://apis.data.go.kr/B551011/Durunubi/courseList?serviceKey=${process.env.TOUR_API_KEY}&MobileOS=ETC&MobileApp=TodayDate&_type=json&numOfRows=5&pageNo=1`;
+      const duruRes = await fetch(duruUrl, { signal: controller.signal });
+      const duruData = await duruRes.json();
+      clearTimeout(timeoutId);
+      const trails = duruData?.response?.body?.items?.item || [];
+      if (trails.length > 0) {
+        durunubiContext = "\n[두루누비 실제 걷기 코스 참고 데이터]\n" + trails.map((t: any) => `- ${t.crsKorNm}: ${t.crsSummary} (교통: ${t.travelerinfo})`).join("\n");
+      }
+    } catch (e) {
+      console.log("Durunubi API skip");
+    }
+  }
 
   const prompt = `너는 세상에서 가장 기발하고 트렌디한 데이트/외출 코스 기획자야. 아래 정보를 바탕으로 오늘 당장 실행할 수 있는 '미친 디테일의' 코스 하나를 뽑아줘.
 
@@ -81,6 +99,7 @@ export async function POST(req: NextRequest) {
 이동수단: ${condition.이동수단}
 상황: ${condition.mode === "today" ? "오늘 바로 할 수 있는 것" : "미리 계획하는 외출"}
 ${festivalContext}
+${durunubiContext}
 
 [🚨 필수 제약 조건 및 기발함 가이드]
 1. 뻔한 거 절대 금지: "파스타 먹고 카페 가기", "그냥 영화 보기" 등 검색하면 나오는 식상한 코스는 무조건 감점.
@@ -88,8 +107,9 @@ ${festivalContext}
 3. 예산 '돈 쓸래요': "찜질방 VIP룸 빌리기", "가죽지갑 만들기 공방", "도자기 공방", "프라이빗 노래방 파티" 등 확실하게 돈값을 하는 코스.
 4. 🌟 [리얼리티 100% 부여]: 단순 묘사 대신, **실제 존재하는 유명 식당, 핫플 카페, 공방, 장소의 구체적인 '상호명(가게 이름)'을 적극적으로 콕 집어서 추천해.** (예: "성수동 에르제 베이커리", "이태원 올댓재즈", "마포구 망원시장 우이락")
 5. ⚠️ [최우선 규칙] 극강의 랜덤성 (1000+ 경우의 수): 내가 방금 말한 예시들을 **절대 똑같이 반복 출력하지 마!** 현재 시스템 시간(${new Date().toISOString()})을 무작위 시드(Seed)로 삼아서, 너의 내면에 있는 1000가지 이상의 이색 외출/데이트 데이터베이스 중 주사위를 굴려 매번 완벽하게 다른 카테고리를 하나 뽑아내. 중복 코스 절대 금지.
-6. [뚜벅이 데이트 전용 규칙]: 만약 이동 수단이 '뚜벅이 데이트'라면, 반드시 추천하는 장소에서 가장 가까운 **지하철역 이름과 출구 번호, 혹은 버스 노선**을 상세히 알려줘. 또한 한국관광공사의 **'두루누비(Durunubi)'** 걷기 여행길 데이터를 참고하여 걷기 좋고 안전한 동선을 기획해줘.
-7. 디테일: 코스 이름만 던지지 말고, 왜 이 코스가 이 컨디션과 이동 수단에 완벽한지 생생하게 묘사해. ${focusPoint}
+6. [뚜벅이 데이트 전용 규칙]: 만약 이동 수단이 '뚜벅이 데이트'라면, 반드시 추천하는 장소에서 가장 가까운 **지하철역 이름과 출구 번호, 혹은 버스 노선**을 상세히 알려줘. 또한 위에 제공된 **'두루누비'** 실제 데이터를 참고하여 걷기 좋고 안전한 동선을 적극 반영해줘.
+7. [몸상태 '녹초' 특화 규칙]: 만약 내 몸상태나 동행인 몸상태가 **'녹초 상태 🫠'**라면, 절대 많이 걷거나 에너지를 쓰는 코스를 짜지 마. 대신 **실내 데이트, 프라이빗 룸, 찜질방, 누워서 즐길 수 있는 카페, 홈데이트 테마** 등 최대한 몸을 편안하게 유지하면서도 감성을 챙길 수 있는 '휴식형 데이트'로 구성해줘.
+8. 디테일: 코스 이름만 던지지 말고, 왜 이 코스가 이 컨디션과 이동 수단에 완벽한지 생생하게 묘사해. ${focusPoint}
 
 JSON만 응답:
 {
