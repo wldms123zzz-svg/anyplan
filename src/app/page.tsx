@@ -181,7 +181,10 @@ export default function DateThemeApp() {
         body: JSON.stringify({ region: condition.지역, month: targetMonth }),
       });
       const data = await res.json();
-      if (data.message) {
+      if (data.error) {
+        setFestMessage(data.error);
+        setFestivals([]);
+      } else if (data.message) {
         setFestMessage(data.message);
         setFestivals([]);
       } else {
