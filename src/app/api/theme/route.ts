@@ -29,9 +29,14 @@ export async function POST(req: NextRequest) {
       const region = condition?.지역;
       const areaParam = (region && AREA_CODES[region]) ? `&areaCode=${AREA_CODES[region]}` : "";
 
-      // url 인코딩된 키가 아니면 오류가 날 수 있으므로 그대로 씁니다 (공공데이터포털 특성)
+      // 1.5초 타임아웃 설정 (공공데이터 API가 너무 느려서 전체가 지연되는 것 방지)
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 1500);
+
       const tourUrl = `http://apis.data.go.kr/B551011/KorService1/searchFestival1?serviceKey=${tourKey}&MobileOS=ETC&MobileApp=TodayDate&_type=json&eventStartDate=${todayStr}&numOfRows=5${areaParam}`;
-      const tourRes = await fetch(tourUrl);
+      const tourRes = await fetch(tourUrl, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      
       const tourData = await tourRes.json();
       
       const items = tourData?.response?.body?.items?.item;

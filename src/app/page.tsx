@@ -17,6 +17,7 @@ export default function DateThemeApp() {
   const [condition, setCondition] = useState<any>({ myBody: "", partnerBody: "", 예산: "", 지역: "전국", mode: "" });
   const [result, setResult] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [loadingText, setLoadingText] = useState("AI가 결과 찾는 중...");
   const [rolling, setRolling] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
@@ -37,6 +38,28 @@ export default function DateThemeApp() {
       }
     }
   }, []);
+
+  // 로딩 메시지 다이나믹 변경 (체감 속도 증가)
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (loading) {
+      const messages = [
+        "📡 공공데이터 축제망 접속 중...",
+        "🧠 유저 성향과 컨디션 분석 중...",
+        "🗺️ 동선과 시간 계산하는 중...",
+        "✨ 완벽한 테마를 조립하는 중...",
+      ];
+      let i = 0;
+      setLoadingText(messages[0]);
+      interval = setInterval(() => {
+        i = (i + 1) % messages.length;
+        setLoadingText(messages[i]);
+      }, 1200);
+    } else {
+      setLoadingText("AI가 결과 찾는 중...");
+    }
+    return () => clearInterval(interval);
+  }, [loading]);
 
   // 토스 햅틱 래퍼 (안전하게 호출)
   const triggerHaptic = (type = "light") => {
@@ -538,7 +561,7 @@ export default function DateThemeApp() {
                 disabled={!condition.myBody || !condition.partnerBody || !condition.예산 || !condition.mode || loading}
                 onClick={rollTheme}
               >
-                {loading ? "AI가 결과 찾는 중..." : "테마 뽑기"}
+                {loading ? loadingText : "테마 뽑기"}
               </button>
             </div>
           </div>
@@ -642,7 +665,7 @@ export default function DateThemeApp() {
                   onClick={reroll}
                   disabled={loading}
                 >
-                  {loading ? "AI가 결과 찾는 중..." : "다시 뽑기"}
+                  {loading ? loadingText : "다시 뽑기"}
                 </button>
               </div>
             </div>
