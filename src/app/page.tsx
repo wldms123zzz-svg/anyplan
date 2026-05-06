@@ -64,6 +64,7 @@ export default function DateThemeApp() {
     setTaste({ 무드: [], 활동: [] });
     setCondition({ myBody: "", partnerBody: "", 예산: "", 지역: "전국", mode: "" });
     setResult(null);
+    setErrorMsg("");
   };
 
   const rollTheme = async () => {
@@ -107,14 +108,7 @@ export default function DateThemeApp() {
     }
   };
 
-  const reset = () => {
-    triggerHaptic("light");
-    setStep("start");
-    setTaste({ 분위기: [], 활동: [] });
-    setCondition({ 에너지: "", 예산: "", mode: "" });
-    setResult(null);
-    setErrorMsg("");
-  };
+
 
   const reroll = () => {
     triggerHaptic("success");
