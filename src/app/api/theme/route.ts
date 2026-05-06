@@ -116,7 +116,7 @@ JSON만 응답:
         contents: [{ parts: [{ text: prompt }] }],
         generationConfig: {
           response_mime_type: "application/json",
-          temperature: 1.7,
+          temperature: 1.0,
         },
       }),
     });
