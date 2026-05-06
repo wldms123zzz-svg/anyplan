@@ -59,6 +59,7 @@ export async function POST(req: NextRequest) {
   const ageDiff = Math.abs((profile?.myAge || 20) - (profile?.partnerAge || 20));
   const isFamily = ageDiff >= 20;
   const relationshipType = isFamily ? "나이차가 많이 나는 가족(부모님 등)과의 소중한 외출" : "커플 데이트";
+  const focusPoint = isFamily 
     ? "부모님이나 가족이 함께 무리 없이 즐길 수 있는 동선과 편안함을 최우선으로 고려해줘." 
     : "커플이 즐기기 좋은 로맨틱하거나 재밌는 코스로 짜줘.";
 
