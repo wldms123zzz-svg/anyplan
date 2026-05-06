@@ -21,7 +21,8 @@ export async function POST(req: NextRequest) {
     };
     
     const areaParam = (region && AREA_CODES[region]) ? `&areaCode=${AREA_CODES[region]}` : "";
-    const tourUrl = `https://apis.data.go.kr/B551011/KorService2/searchFestival2?serviceKey=${tourKey}&MobileOS=ETC&MobileApp=TodayDate&_type=json&eventStartDate=${todayStr}&numOfRows=10${areaParam}`;
+    // searchFestival2 대신 더 포괄적인 areaBasedList2 (contentTypeId=15: 축제/행사) 사용
+    const tourUrl = `https://apis.data.go.kr/B551011/KorService2/areaBasedList2?serviceKey=${tourKey}&MobileOS=ETC&MobileApp=TodayDate&_type=json&contentTypeId=15&numOfRows=10&listYN=Y&arrange=Q${areaParam}`;
 
     const res = await fetch(tourUrl);
     const data = await res.json();

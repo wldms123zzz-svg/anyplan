@@ -852,11 +852,13 @@ export default function DateThemeApp() {
                       <div style={{ width: 80, height: 80, borderRadius: 12, background: "#E5E8EB", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32 }}>🎪</div>
                     )}
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 13, color: "#3182F6", fontWeight: 600, marginBottom: 4 }}>
-                        {f.eventstartdate.slice(4,6)}.{f.eventstartdate.slice(6,8)} ~ {f.eventenddate.slice(4,6)}.{f.eventenddate.slice(6,8)}
-                      </div>
+                      {f.eventstartdate && (
+                        <div style={{ fontSize: 13, color: "#3182F6", fontWeight: 600, marginBottom: 4 }}>
+                          {f.eventstartdate.slice(4,6)}.{f.eventstartdate.slice(6,8)} ~ {f.eventenddate?.slice(4,6)}.{f.eventenddate?.slice(6,8)}
+                        </div>
+                      )}
                       <div style={{ fontSize: 16, fontWeight: 700, color: "#191F28", marginBottom: 4 }}>{f.title}</div>
-                      <div style={{ fontSize: 13, color: "#8B95A1" }}>{f.addr1}</div>
+                      <div style={{ fontSize: 13, color: "#8B95A1" }}>{f.addr1 || "지역 정보 없음"}</div>
                     </div>
                   </div>
                 ))}
