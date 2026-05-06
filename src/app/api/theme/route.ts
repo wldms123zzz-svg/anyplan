@@ -35,13 +35,21 @@ export async function POST(req: NextRequest) {
 
       const tourUrl = `https://apis.data.go.kr/B551011/KorService2/searchFestival2?serviceKey=${tourKey}&MobileOS=ETC&MobileApp=TodayDate&_type=json&eventStartDate=${todayStr}&numOfRows=5${areaParam}`;
       const tourRes = await fetch(tourUrl, { signal: controller.signal });
+      const tourData = await tourRes.json();
+      let items = tourData?.response?.body?.items?.item;
+
+      // 축제가 없다면 일반 행사/전시 정보로 재시도
+      if (!items || items.length === 0) {
+        const fallbackUrl = `https://apis.data.go.kr/B551011/KorService2/areaBasedList2?serviceKey=${tourKey}&MobileOS=ETC&MobileApp=TodayDate&_type=json&contentTypeId=15&numOfRows=5&listYN=Y&arrange=Q${areaParam}`;
+        const fallbackRes = await fetch(fallbackUrl, { signal: controller.signal });
+        const fallbackData = await fallbackRes.json();
+        items = fallbackData?.response?.body?.items?.item;
+      }
+
       clearTimeout(timeoutId);
       
-      const tourData = await tourRes.json();
-      
-      const items = tourData?.response?.body?.items?.item;
       if (items && items.length > 0) {
-        const festivalList = items.map((f: any) => `- [${f.title}] (${f.addr1 || "위치 미상"})`).join("\n");
+        const festivalList = Array.isArray(items) ? items.map((f: any) => `- [${f.title}] (${f.addr1 || "위치 미상"})`).join("\n") : `- [${items.title}] (${items.addr1 || "위치 미상"})`;
         festivalContext = `\n[참고 데이터: 현재 ${region || "전국"}에서 진행 중인 실제 축제/행사]\n${festivalList}\n(이 행사들 중 유저의 취향에 맞는 것이 있다면 적극적으로 활용해서 현실적인 데이트 코스를 짜줘. 특히 ${region && region !== '전국' ? region + ' 지역의 ' : ''}행사를 우선적으로 고려해줘.)\n`;
       } else {
         throw new Error("No items returned");

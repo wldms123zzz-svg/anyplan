@@ -23,27 +23,42 @@ export async function POST(req: NextRequest) {
       "경기": "31", "강원": "32", "충북": "33", "충남": "34", "경북": "35", "경남": "36", "전북": "37", "전남": "38", "제주": "39"
     };
     
-    const areaParam = (region && AREA_CODES[region]) ? `&areaCode=${AREA_CODES[region]}` : "";
+    const areaCode = AREA_CODES[region] || "";
+    const areaParam = areaCode ? `&areaCode=${areaCode}` : "";
     
-    // 특정 월의 축제 조회를 위해 searchFestival2 사용
-    const tourUrl = `https://apis.data.go.kr/B551011/KorService2/searchFestival2?serviceKey=${tourKey}&MobileOS=ETC&MobileApp=TodayDate&_type=json&eventStartDate=${startDate}&numOfRows=20${areaParam}`;
-
-    const res = await fetch(tourUrl);
-    const data = await res.json();
+    // 1차 시도: searchFestival2 (월별 축제)
+    let tourUrl = `https://apis.data.go.kr/B551011/KorService2/searchFestival2?serviceKey=${tourKey}&MobileOS=ETC&MobileApp=TodayDate&_type=json&eventStartDate=${startDate}&numOfRows=30${areaParam}`;
+    let res = await fetch(tourUrl);
+    let data = await res.json();
     let items = data?.response?.body?.items?.item || [];
 
-    // 해당 월에 속하는 것만 필터링 (startDate는 이후 정보를 다 가져오므로)
+    // 2차 시도: 만약 축제가 없다면 areaBasedList2 (일반 행사/전시)로 확장
+    if (!Array.isArray(items) || items.length === 0) {
+      tourUrl = `https://apis.data.go.kr/B551011/KorService2/areaBasedList2?serviceKey=${tourKey}&MobileOS=ETC&MobileApp=TodayDate&_type=json&contentTypeId=15&numOfRows=20&listYN=Y&arrange=Q${areaParam}`;
+      res = await fetch(tourUrl);
+      data = await res.json();
+      items = data?.response?.body?.items?.item || [];
+    }
+
+    // 결과 필터링 및 정렬
     if (Array.isArray(items)) {
-      items = items.filter((item: any) => {
-        const start = item.eventstartdate; // YYYYMMDD
-        return start.substring(4, 6) === String(targetMonth).padStart(2, "0");
-      });
+      // 중복 제거 및 데이터 정제
+      items = items.map((item: any) => ({
+        ...item,
+        // searchFestival2와 areaBasedList2의 필드명 차이 대응
+        title: item.title,
+        addr1: item.addr1,
+        firstimage: item.firstimage,
+        eventstartdate: item.eventstartdate || "",
+        eventenddate: item.eventenddate || ""
+      }));
     }
 
     const result = NextResponse.json(items);
     result.headers.set("Access-Control-Allow-Origin", "*");
     return result;
   } catch (error) {
+    console.error("Festival API Error:", error);
     return NextResponse.json({ error: "데이터를 가져오는데 실패했습니다." }, { status: 500 });
   }
 }
