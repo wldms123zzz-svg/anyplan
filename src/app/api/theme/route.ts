@@ -38,10 +38,16 @@ export async function POST(req: NextRequest) {
       if (items && items.length > 0) {
         const festivalList = items.map((f: any) => `- [${f.title}] (${f.addr1 || "위치 미상"})`).join("\n");
         festivalContext = `\n[참고 데이터: 현재 ${region || "전국"}에서 진행 중인 실제 축제/행사]\n${festivalList}\n(이 행사들 중 유저의 취향에 맞는 것이 있다면 적극적으로 활용해서 현실적인 데이트 코스를 짜줘. 특히 ${region && region !== '전국' ? region + ' 지역의 ' : ''}행사를 우선적으로 고려해줘.)\n`;
+      } else {
+        throw new Error("No items returned");
       }
+    } else {
+      throw new Error("No API key");
     }
   } catch (err) {
-    console.log("Tour API Fetch failed, skipping real-time data.", err);
+    console.log("Tour API Fetch failed, using fallback local knowledge.", err);
+    const region = condition?.지역 || "전국";
+    festivalContext = `\n(참고: 현재 외부 API를 통한 실시간 축제 정보 로드에 실패했습니다. 하지만 네가 알고 있는 **${region} 지역의 유명한 축제, 팝업스토어, 야시장, 특별 전시회** 등 실제 존재하는 로컬 핫플레이스 정보를 최대한 동원해서 아주 리얼하고 구체적인 데이트 코스를 짜줘. "카페 가기" 같은 뻔한 내용 대신, ${region}에 실제로 있는 장소 이름을 언급하면 더 좋아.)\n`;
   }
 
   const prompt = `너는 커플 데이트 테마 제안봇이야. 아래 취향을 보고 오늘의 데이트 테마 하나를 뽑아줘.
