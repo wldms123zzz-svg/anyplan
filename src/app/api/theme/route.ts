@@ -134,9 +134,24 @@ JSON만 응답:
     const match = text.match(/\{[\s\S]*\}/);
     if (!match) throw new Error("JSON 파싱 실패");
 
-    return NextResponse.json(JSON.parse(match[0]));
+    // CORS 헤더 설정
+    const response = NextResponse.json(JSON.parse(match[0]));
+    response.headers.set("Access-Control-Allow-Origin", "*"); // 실제 운영 시에는 특정 도메인으로 제한 권장
+    response.headers.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+    response.headers.set("Access-Control-Allow-Headers", "Content-Type");
+    
+    return response;
   } catch (err: any) {
     console.error("Gemini API Error:", err);
     return NextResponse.json({ error: err.message || "테마 생성 실패" }, { status: 500 });
   }
+}
+
+// OPTIONS 요청 처리 (Preflight)
+export async function OPTIONS() {
+  const response = new NextResponse(null, { status: 204 });
+  response.headers.set("Access-Control-Allow-Origin", "*");
+  response.headers.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+  response.headers.set("Access-Control-Allow-Headers", "Content-Type");
+  return response;
 }
