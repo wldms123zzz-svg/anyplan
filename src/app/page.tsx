@@ -22,6 +22,8 @@ export default function DateThemeApp() {
   const [isSharing, setIsSharing] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [partnerVote, setPartnerVote] = useState<string | null>(null); // 'agree' | 'disagree'
+  const [countdown, setCountdown] = useState(10);
+  const [loadingTip, setLoadingTextTip] = useState("");
   const diceRef = useRef<HTMLDivElement>(null);
 
   // 공유된 데이터 로드 (URL 파라미터)
@@ -39,26 +41,66 @@ export default function DateThemeApp() {
     }
   }, []);
 
-  // 로딩 메시지 다이나믹 변경 (체감 속도 증가)
+  // 토스 광고 로드
+  useEffect(() => {
+    if (step === "result" && !loading) {
+      if (typeof window !== "undefined" && (window as any).toss?.ad?.showBanner) {
+        (window as any).toss.ad.showBanner({
+          adGroupId: "ait.v2.live.0cdc8d469958499a",
+          container: "#toss-ad-container",
+        });
+      }
+    }
+  }, [step, loading]);
+
+  // 로딩 메시지 및 꿀팁 다이나믹 변경 (지루함 방지)
   useEffect(() => {
     let interval: NodeJS.Timeout;
+    let tipInterval: NodeJS.Timeout;
+    let timer: NodeJS.Timeout;
+
     if (loading) {
+      setCountdown(10);
       const messages = [
-        "📡 공공데이터 축제망 접속 중...",
-        "🧠 유저 성향과 컨디션 분석 중...",
-        "🗺️ 동선과 시간 계산하는 중...",
-        "✨ 완벽한 테마를 조립하는 중...",
+        "📡 전국 축제 네트워크 접속 중...",
+        "🧠 완벽한 동선 설계 중...",
+        "🗺️ 지도를 펼쳐보는 중...",
+        "✨ 분위기 좋은 장소 찾는 중...",
+        "💡 특별한 대화 주제 고르는 중...",
       ];
+      const tips = [
+        "💡 팁: 첫 데이트라면 너무 조용한 곳보다 약간의 소음이 있는 곳이 긴장을 풀어줘요.",
+        "💡 팁: 이동 중에는 상대방의 플레이리스트를 함께 들어보세요.",
+        "💡 팁: 가끔은 계획에 없던 골목길 산책이 더 기억에 남기도 해요.",
+        "💡 팁: 사진을 찍어줄 땐 수평을 맞추고 발끝을 화면 하단에 맞춰보세요!",
+        "💡 팁: 상대방의 컨디션을 수시로 체크하는 센스가 필요해요.",
+        "💡 팁: 대화가 끊길 땐 '가장 최근에 본 재밌는 영상' 이야기를 꺼내보세요.",
+      ];
+      
       let i = 0;
+      let j = 0;
       setLoadingText(messages[0]);
+      setLoadingTextTip(tips[0]);
+
       interval = setInterval(() => {
         i = (i + 1) % messages.length;
         setLoadingText(messages[i]);
-      }, 1200);
-    } else {
-      setLoadingText("AI가 결과 찾는 중...");
+      }, 1500);
+
+      tipInterval = setInterval(() => {
+        j = (j + 1) % tips.length;
+        setLoadingTextTip(tips[j]);
+      }, 2500);
+
+      timer = setInterval(() => {
+        setCountdown((prev) => (prev > 1 ? prev - 1 : 1));
+      }, 1000);
     }
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      clearInterval(tipInterval);
+      clearInterval(timer);
+    };
   }, [loading]);
 
   // 토스 햅틱 래퍼 (안전하게 호출)
@@ -104,11 +146,10 @@ export default function DateThemeApp() {
     setLoading(true);
     setRolling(true);
     setErrorMsg("");
-    setStep("result");
+    // setStep("result"); // 데이터 받기 전까지는 기존 화면 유지 (오버레이가 덮음)
 
     try {
-      // 넥스트 API 라우트로 요청
-      const res = await fetch("/api/theme", {
+      const res = await fetch("https://anyplan.vercel.app/api/theme", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ profile, taste, condition }),
@@ -121,13 +162,14 @@ export default function DateThemeApp() {
       }
 
       setResult(data);
-      setStep("result");
+      setStep("result"); // 데이터가 완벽히 로드된 후 화면 전환
       triggerHaptic("success");
     } catch (err: any) {
       console.error(err);
       setErrorMsg(err.message || "API 연결에 실패했습니다. (크레딧이나 키 설정을 확인해주세요)");
     } finally {
       setLoading(false);
+      setRolling(false);
     }
   };
 
@@ -200,22 +242,27 @@ export default function DateThemeApp() {
   return (
     <div style={{ minHeight: "100vh", background: "#F2F4F6", color: "#191F28", fontFamily: "'Pretendard Variable', Pretendard, -apple-system, sans-serif", overflowX: "hidden" }}>
       <style>{`
+        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
         * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
         @keyframes fadeUp {
           from { opacity: 0; transform: translateY(15px); }
           to { opacity: 1; transform: translateY(0); }
         }
-        @keyframes roll {
-          0% { transform: rotate(0deg) scale(1); }
-          25% { transform: rotate(15deg) scale(1.1); }
-          50% { transform: rotate(-10deg) scale(0.95); }
-          75% { transform: rotate(8deg) scale(1.05); }
-          100% { transform: rotate(0deg) scale(1); }
+        @keyframes rolling {
+          0% { transform: scale(1) rotate(0deg); }
+          25% { transform: scale(1.2) rotate(90deg) translateY(-20px); }
+          50% { transform: scale(1) rotate(180deg) translateY(0); }
+          75% { transform: scale(1.2) rotate(270deg) translateY(-20px); }
+          100% { transform: scale(1) rotate(360deg) translateY(0); }
         }
 
         .fade-up { animation: fadeUp 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
-        .rolling { animation: roll 0.3s ease infinite; display: inline-block; }
+        .rolling {
+          animation: rolling 2s infinite cubic-bezier(0.45, 0.05, 0.55, 0.95);
+          display: inline-block;
+          filter: drop-shadow(0 10px 15px rgba(0,0,0,0.1));
+        }
 
         .tag-btn {
           padding: 12px 16px;
@@ -267,6 +314,22 @@ export default function DateThemeApp() {
         .roll-btn:active:not(:disabled) { transform: scale(0.98); background: #1B64DA; }
         .roll-btn:disabled { background: #D1D6DB; color: #FFFFFF; cursor: not-allowed; }
 
+        .roll-btn:disabled { background: #D1D6DB; color: #FFFFFF; cursor: not-allowed; }
+        
+        .loading-overlay {
+          position: fixed;
+          top: 0; left: 0; right: 0; bottom: 0;
+          background: rgba(255, 255, 255, 0.95);
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          z-index: 9999;
+          padding: 24px;
+          text-align: center;
+          backdrop-filter: blur(8px);
+        }
+
         .result-card {
           border-radius: 24px;
           background: #FFFFFF;
@@ -298,6 +361,30 @@ export default function DateThemeApp() {
           line-height: 1.5;
         }
       `}</style>
+
+      {/* 로딩 오버레이 */}
+      {loading && (
+        <div className="loading-overlay fade-up">
+          <div style={{ fontSize: 64, marginBottom: 32 }} className="rolling">🎲</div>
+          <h2 style={{ fontSize: 24, fontWeight: 700, marginBottom: 12, color: "#191F28" }}>{loadingText}</h2>
+          <p style={{ fontSize: 16, color: "#4E5968", marginBottom: 32 }}>
+            AI가 가장 기발한 코스를 짜는 중입니다.<br />
+            <strong>약 {countdown}초만</strong> 더 기다려주세요!
+          </p>
+          <div style={{ width: "100%", maxWidth: 200, height: 6, background: "#E5E8EB", borderRadius: 3, overflow: "hidden", marginBottom: 40 }}>
+            <div style={{ 
+              width: `${((10 - countdown) / 10) * 100}%`, 
+              height: "100%", 
+              background: "#3182F6", 
+              transition: "width 1s linear" 
+            }} />
+          </div>
+
+          <div className="fade-up" style={{ padding: "16px 20px", background: "#F9FAFB", borderRadius: "12px", border: "1px solid #F2F4F6", width: "100%", maxWidth: 320 }}>
+             <p style={{ fontSize: 14, color: "#4E5968", lineHeight: 1.6, wordBreak: "keep-all" }}>{loadingTip}</p>
+          </div>
+        </div>
+      )}
 
       <div style={{ maxWidth: 480, margin: "0 auto", padding: "0 20px 100px" }}>
         {/* 헤더 */}
@@ -677,6 +764,9 @@ export default function DateThemeApp() {
                 </button>
               </div>
             </div>
+
+            {/* 토스 광고 영역 */}
+            <div id="toss-ad-container" style={{ width: "100%", minHeight: "100px", marginTop: "32px", borderRadius: "16px", overflow: "hidden" }}></div>
           </div>
         )}
 
