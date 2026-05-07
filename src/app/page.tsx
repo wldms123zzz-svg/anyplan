@@ -55,7 +55,7 @@ export default function DateThemeApp() {
   const [festMessage, setFestMessage] = useState("");
   const diceRef = useRef<HTMLDivElement>(null);
 
-  // 공유된 데이터 로드 (URL 파라미터)
+  useEffect(() => {
     // Hydration 이슈 방지를 위해 클라이언트에서만 날짜 설정
     setSelectedMonth(new Date().getMonth() + 1);
 
