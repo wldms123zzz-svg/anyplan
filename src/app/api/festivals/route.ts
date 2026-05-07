@@ -28,7 +28,13 @@ export async function POST(req: NextRequest) {
     
     const fetchItems = async (url: string) => {
       try {
-        const res = await fetch(url, { next: { revalidate: 0 } });
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 2500); // 2.5초 타임아웃
+        const res = await fetch(url, { 
+          next: { revalidate: 3600 },
+          signal: controller.signal 
+        });
+        clearTimeout(timeoutId);
         const data = await res.json();
         const items = data?.response?.body?.items?.item || [];
         return Array.isArray(items) ? items : (items.title ? [items] : []);

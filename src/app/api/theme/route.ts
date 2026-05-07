@@ -26,7 +26,13 @@ export async function POST(req: NextRequest) {
       
       const fetchTourData = async (url: string) => {
         try {
-          const res = await fetch(url, { next: { revalidate: 3600 } });
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 1500); // 1.5초 타임아웃
+          const res = await fetch(url, { 
+            next: { revalidate: 3600 },
+            signal: controller.signal 
+          });
+          clearTimeout(timeoutId);
           if (!res.ok) return null;
           return await res.json();
         } catch (e) { return null; }
@@ -52,7 +58,13 @@ export async function POST(req: NextRequest) {
       [형식] {"theme":"제목","emoji":"✨","desc":"설명","vibe":"분위기","doThis":["1","2","3"],"transportInfo":"팁","talkTopic":"주제","randomTwist":"미션","perfectFor":"대상"}
     `;
 
-    const result = await model.generateContent(prompt);
+    // Gemini 호출에 7초 타임아웃 적용
+    const geminiPromise = model.generateContent(prompt);
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error("Gemini Timeout")), 7000)
+    );
+
+    const result = await Promise.race([geminiPromise, timeoutPromise]) as any;
     const response = await result.response;
     
     // 후보가 아예 없는 경우 (안전 필터 등에 의해 차단됨)

@@ -203,13 +203,18 @@ export default function DateThemeApp() {
     if (loading) return;
     triggerHaptic();
     setLoading(true);
-    setError(""); // 이전 에러 초기화
+    setErrorMsg(""); // 이전 에러 초기화
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10초 타임아웃
+
       const res = await fetch("/api/theme", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ profile, taste: { ...taste, 활동: taste.활동 }, condition }),
+        signal: controller.signal
       });
+      clearTimeout(timeoutId);
       if (!res.ok) throw new Error("추천 결과 생성 실패");
       const data = await res.json();
       if (data.error) throw new Error(data.error);
@@ -217,7 +222,7 @@ export default function DateThemeApp() {
       setStep("result");
     } catch (err: any) {
       console.error(err);
-      setError(err.message || "추천 결과를 가져오지 못했습니다. 다시 시도해주세요.");
+      setErrorMsg(err.message || "추천 결과를 가져오지 못했습니다. 다시 시도해주세요.");
     } finally {
       setLoading(false);
     }
