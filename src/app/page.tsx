@@ -63,8 +63,10 @@ export default function DateThemeApp() {
     const sharedData = params.get("data");
     if (sharedData) {
       try {
-        const decoded = JSON.parse(atob(sharedData));
-        setResult(decoded);
+        // 안전한 Base64 디코딩 (한글 대응)
+        const decodedData = decodeURIComponent(escape(atob(sharedData)));
+        const parsed = JSON.parse(decodedData);
+        setResult(parsed);
         setStep("result");
       } catch (e) {
         console.error("공유 데이터 파싱 실패", e);
@@ -86,9 +88,9 @@ export default function DateThemeApp() {
 
   // 로딩 메시지 및 꿀팁 다이나믹 변경 (지루함 방지)
   useEffect(() => {
-    let interval: NodeJS.Timeout;
-    let tipInterval: NodeJS.Timeout;
-    let timer: NodeJS.Timeout;
+    let interval: any;
+    let tipInterval: any;
+    let timer: any;
 
     if (loading) {
       setCountdown(5);
@@ -247,8 +249,8 @@ export default function DateThemeApp() {
       return;
     }
 
-    // 데이터 인코딩 (Base64)
-    const encodedData = btoa(unescape(encodeURIComponent(JSON.stringify(result))));
+    // 데이터 인코딩 (Base64 + Unicode 대응)
+    const encodedData = btoa(encodeURIComponent(JSON.stringify(result)).replace(/%([0-9A-F]{2})/g, (match, p1) => String.fromCharCode(parseInt(p1, 16))));
     const shareUrl = `${window.location.origin}${window.location.pathname}?data=${encodedData}`;
     
     const shareText = `[오늘 뭐하지? 🎲]\n오늘의 추천 데이트: ${result.theme}\n\n${result.desc}\n${result.vibe}\n\n상대방의 의견을 들려주세요!\n${shareUrl}`;
