@@ -63,8 +63,8 @@ export default function DateThemeApp() {
     const sharedData = params.get("data");
     if (sharedData) {
       try {
-        // 안전한 Base64 디코딩 (한글 대응)
-        const decodedData = decodeURIComponent(escape(atob(sharedData)));
+        // btoa/atob 대신 안전한 URL 인코딩 데이터 복구
+        const decodedData = decodeURIComponent(sharedData);
         const parsed = JSON.parse(decodedData);
         setResult(parsed);
         setStep("result");
@@ -249,8 +249,8 @@ export default function DateThemeApp() {
       return;
     }
 
-    // 데이터 인코딩 (Base64 + Unicode 대응)
-    const encodedData = btoa(encodeURIComponent(JSON.stringify(result)).replace(/%([0-9A-F]{2})/g, (match, p1) => String.fromCharCode(parseInt(p1, 16))));
+    // 데이터 인코딩 (btoa 대신 안전한 URL 인코딩 방식 사용)
+    const encodedData = encodeURIComponent(JSON.stringify(result));
     const shareUrl = `${window.location.origin}${window.location.pathname}?data=${encodedData}`;
     
     const shareText = `[오늘 뭐하지? 🎲]\n오늘의 추천 데이트: ${result.theme}\n\n${result.desc}\n${result.vibe}\n\n상대방의 의견을 들려주세요!\n${shareUrl}`;
