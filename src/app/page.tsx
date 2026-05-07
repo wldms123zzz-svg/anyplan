@@ -853,7 +853,7 @@ export default function DateThemeApp() {
                 <button
                   className="roll-btn"
                   style={{ flex: 1 }}
-                  onClick={reroll}
+                  onClick={rollTheme}
                   disabled={loading}
                 >
                   {loading ? loadingText : "다시 뽑기"}
