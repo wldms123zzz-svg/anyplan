@@ -40,7 +40,7 @@ export default function DateThemeApp() {
   const [isSharing, setIsSharing] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [partnerVote, setPartnerVote] = useState<string | null>(null); 
-  const [countdown, setCountdown] = useState(10);
+  const [countdown, setCountdown] = useState(5);
   const [loadingTip, setLoadingTextTip] = useState("");
   const [festivals, setFestivals] = useState<{
     title: string;
@@ -51,12 +51,14 @@ export default function DateThemeApp() {
   }[]>([]);
   const [showFestivals, setShowFestivals] = useState(false);
   const [festLoading, setFestLoading] = useState(false);
-  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
+  const [selectedMonth, setSelectedMonth] = useState(1);
   const [festMessage, setFestMessage] = useState("");
   const diceRef = useRef<HTMLDivElement>(null);
 
   // 공유된 데이터 로드 (URL 파라미터)
-  useEffect(() => {
+    // Hydration 이슈 방지를 위해 클라이언트에서만 날짜 설정
+    setSelectedMonth(new Date().getMonth() + 1);
+
     const params = new URLSearchParams(window.location.search);
     const sharedData = params.get("data");
     if (sharedData) {
@@ -203,26 +205,34 @@ export default function DateThemeApp() {
     if (loading) return;
     triggerHaptic();
     setLoading(true);
-    setErrorMsg(""); // 이전 에러 초기화
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10초 타임아웃
+    setErrorMsg("");
+    
+    // 로컬 데이터베이스 (API 실패 시 대비용)
+    const LOCAL_FALLBACKS = [
+      { theme: "편의점 야식 + 드라마 정주행", emoji: "🍜", desc: "각자 먹고 싶은 거 고르고 소파에서 뒹굴뒹굴", vibe: "#편안함 #야식폭탄", doThis: ["편의점 털기", "드라마 정주행"], talkTopic: "과거로 돌아간다면?", randomTwist: "먹방 찍기", perfectFor: "집돌이 커플" },
+      { theme: "따릉이 레이스 + 한강 라면", emoji: "🚲", desc: "시원한 강바람 맞으며 자전거 타기", vibe: "#활동적 #낭만", doThis: ["자전거 타기", "즉석라면 먹기"], talkTopic: "올해 가장 행복한 순간?", randomTwist: "라면 내기", perfectFor: "운동 좋아하는 커플" },
+      { theme: "방구석 세계 미식 여행", emoji: "✈️", desc: "이국적인 음식 배달시켜 먹기", vibe: "#이색적 #배부름", doThis: ["태국 음식 배달", "여행 브이로그 시청"], talkTopic: "가고 싶은 나라는?", randomTwist: "현지어로 건배하기", perfectFor: "여행광 커플" },
+      { theme: "보드게임 카페 내기", emoji: "🎲", desc: "두뇌 풀가동 보드게임 대결", vibe: "#승부욕 #신남", doThis: ["스플랜더 하기", "벌칙 정하기"], talkTopic: "나의 장점과 약점은?", randomTwist: "진 사람이 소원 들어주기", perfectFor: "내기 좋아하는 커플" },
+      { theme: "서점 데이트 + 책 교환", emoji: "📚", desc: "서로에게 어울리는 책 선물하기", vibe: "#차분함 #감성", doThis: ["책 골라주기", "카페에서 읽기"], talkTopic: "이 책을 고른 이유?", randomTwist: "책에 편지 쓰기", perfectFor: "지적인 커플" }
+    ];
 
+    try {
       const res = await fetch("/api/theme", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ profile, taste: { ...taste, 활동: taste.활동 }, condition }),
-        signal: controller.signal
+        body: JSON.stringify({ profile, taste, condition }),
       });
-      clearTimeout(timeoutId);
-      if (!res.ok) throw new Error("추천 결과 생성 실패");
+      
+      if (!res.ok) throw new Error("API Offline");
       const data = await res.json();
-      if (data.error) throw new Error(data.error);
       setResult(data);
       setStep("result");
-    } catch (err: any) {
-      console.error(err);
-      setErrorMsg(err.message || "추천 결과를 가져오지 못했습니다. 다시 시도해주세요.");
+    } catch (err) {
+      console.warn("API 호출 실패, 로컬 데이터로 전환합니다.", err);
+      // API 실패 시 로컬에서 하나 랜덤으로 뽑기
+      const randomFallback = LOCAL_FALLBACKS[Math.floor(Math.random() * LOCAL_FALLBACKS.length)];
+      setResult(randomFallback);
+      setStep("result");
     } finally {
       setLoading(false);
     }
