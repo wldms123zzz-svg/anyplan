@@ -314,19 +314,25 @@ export default function DateThemeApp() {
                 )}
                 <p style={{ fontSize: 13, fontWeight: 600, color: "#8B95A1", marginBottom: 16 }}>코스 안내</p>
                 {result.doThis.map((item, i) => (
-                  <div key={i} style={{ display: "flex", gap: 16, marginBottom: 20, alignItems: "flex-start" }}>
-                    <span style={{ 
+                  <div key={i} style={{ display: "flex", gap: 20, marginBottom: 28, alignItems: "flex-start" }}>
+                    <div style={{ 
                       color: "#3182F6", 
-                      fontSize: 16, 
-                      fontWeight: 800, 
+                      fontSize: 14, 
+                      fontWeight: 900, 
                       fontFamily: "monospace",
-                      marginTop: 2,
+                      background: "#E8F3FF",
+                      width: 36,
+                      height: 36,
+                      borderRadius: "50%",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
                       flexShrink: 0
                     }}>
                       {String(i + 1).padStart(2, "0")}
-                    </span>
-                    <span style={{ color: "#333D4B", fontSize: 15, lineHeight: 1.7, wordBreak: "keep-all" }}>
-                      {item}
+                    </div>
+                    <span style={{ color: "#333D4B", fontSize: 16, lineHeight: 1.65, fontWeight: 500, wordBreak: "keep-all", paddingTop: 6 }}>
+                      {item.replace(/^\d+\s*/, '')}
                     </span>
                   </div>
                 ))}
