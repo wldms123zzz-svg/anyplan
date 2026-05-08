@@ -1,6 +1,9 @@
 import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from "@google/generative-ai";
 import { NextRequest, NextResponse } from "next/server";
 
+export const dynamic = 'force-dynamic';
+export const runtime = 'edge';
+
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
 export async function POST(req: NextRequest) {
@@ -29,7 +32,7 @@ export async function POST(req: NextRequest) {
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 1500); // 1.5초 타임아웃
           const res = await fetch(url, { 
-            next: { revalidate: 3600 },
+            next: { revalidate: 0 },
             signal: controller.signal 
           });
           clearTimeout(timeoutId);
@@ -51,11 +54,18 @@ export async function POST(req: NextRequest) {
 
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash", safetySettings });
 
+    const timestamp = new Date().toISOString();
+    
     const prompt = `
-      당신은 데이트 플래너입니다. 아래 정보를 바탕으로 데이트 테마를 추천하고 JSON으로만 답변하세요.
-      [정보] 지역:${condition.지역}, 이동:${condition.이동수단}, 무드:${taste.무드}, 활동:${taste.활동}, 예산:${condition.예산}
-      [데이터] ${realData}
-      [형식] {"theme":"제목","emoji":"✨","desc":"설명","vibe":"분위기","doThis":["1","2","3"],"transportInfo":"팁","talkTopic":"주제","randomTwist":"미션","perfectFor":"대상"}
+      사용자 정보: ${JSON.stringify(profile)}
+      취향: ${JSON.stringify(taste)}
+      현재 상황: ${JSON.stringify(condition)}
+      요청 시간: ${timestamp}
+      추가 데이터: ${realData}
+
+      위 정보를 바탕으로 창의적이고 구체적인 데이트 테마를 하나 제안해주세요.
+      매번 다른 결과를 내놓아야 하며, 아주 구체적인 장소와 동선을 포함해주세요.
+      (JSON 형식으로만 응답: { "theme": "...", "desc": "...", "vibe": "...", "emoji": "...", "doThis": ["...", "...", "..."], "transportInfo": "...", "talkTopic": "...", "randomTwist": "...", "perfectFor": "..." })
     `;
 
     // Gemini 호출에 7초 타임아웃 적용
