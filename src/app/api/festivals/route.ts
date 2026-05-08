@@ -19,17 +19,17 @@ export async function POST(req: NextRequest) {
     const targetMonthStr = String(targetMonth).padStart(2, "0");
 
     const AREA_CODES: Record<string, string> = {
-      "서울": "1", "인천": "2", "대전": "3", "대구": "4", "광주": "5", "부산": "6", "울산": "7", "세종": "8",
-      "경기": "31", "강원": "32", "충북": "33", "충남": "34", "경북": "35", "경남": "36", "전북": "37", "전남": "38", "제주": "39"
+      "서울": "11", "인천": "28", "대전": "30", "대구": "27", "광주": "29", "부산": "26", "울산": "31", "세종": "36",
+      "경기": "41", "강원": "42", "충북": "43", "충남": "44", "전북": "45", "전남": "46", "경북": "47", "경남": "48", "제주": "50"
     };
     
-    const areaCode = AREA_CODES[region] || "";
-    const areaParam = areaCode ? `&areaCode=${areaCode}` : "";
+    const regnCd = AREA_CODES[region] || "";
+    const regnParam = regnCd ? `&lDongRegnCd=${regnCd}` : "";
     
     const fetchItems = async (url: string) => {
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 2500); // 2.5초 타임아웃
+        const timeoutId = setTimeout(() => controller.abort(), 6000); // 6초 타임아웃
         const res = await fetch(url, { 
           next: { revalidate: 3600 },
           signal: controller.signal 
@@ -44,13 +44,13 @@ export async function POST(req: NextRequest) {
     // [전략] 2026년 팝업, 전시, 축제를 위한 다중 채널 검색
     const [festItems, popupItems, exhibitionItems, areaItems] = await Promise.all([
       // 1. 공식 축제 (2026년)
-      fetchItems(`https://apis.data.go.kr/B551011/KorService2/searchFestival2?serviceKey=${decodedKey}&MobileOS=ETC&MobileApp=TodayDate&_type=json&eventStartDate=${targetYear}${targetMonthStr}01&numOfRows=50${areaParam}`),
+      fetchItems(`https://apis.data.go.kr/B551011/KorService2/searchFestival2?serviceKey=${decodedKey}&MobileOS=ETC&MobileApp=TodayDate&_type=json&eventStartDate=${targetYear}${targetMonthStr}01&numOfRows=50${regnParam}`),
       // 2. 팝업 키워드 검색
       fetchItems(`https://apis.data.go.kr/B551011/KorService2/searchKeyword2?serviceKey=${decodedKey}&MobileOS=ETC&MobileApp=TodayDate&_type=json&keyword=${encodeURIComponent(targetYear + " " + region + " 팝업")}&numOfRows=30`),
       // 3. 전시 키워드 검색 (문화시설 카테고리 14 포함)
       fetchItems(`https://apis.data.go.kr/B551011/KorService2/searchKeyword2?serviceKey=${decodedKey}&MobileOS=ETC&MobileApp=TodayDate&_type=json&keyword=${encodeURIComponent(targetYear + " " + region + " 전시")}&contentTypeId=14&numOfRows=30`),
       // 4. 일반 행사 리스트
-      fetchItems(`https://apis.data.go.kr/B551011/KorService2/areaBasedList2?serviceKey=${decodedKey}&MobileOS=ETC&MobileApp=TodayDate&_type=json&contentTypeId=15&numOfRows=100&arrange=Q${areaParam}`)
+      fetchItems(`https://apis.data.go.kr/B551011/KorService2/areaBasedList2?serviceKey=${decodedKey}&MobileOS=ETC&MobileApp=TodayDate&_type=json&contentTypeId=15&numOfRows=100&arrange=Q${regnParam}`)
     ]);
 
     const combined = [...festItems, ...popupItems, ...exhibitionItems, ...areaItems].filter(i => i && i.title);

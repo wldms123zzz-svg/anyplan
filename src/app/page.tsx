@@ -102,12 +102,12 @@ export default function DateThemeApp() {
         "💡 특별한 대화 주제 고르는 중...",
       ];
       const tips = [
-        "💡 팁: 첫 데이트라면 너무 조용한 곳보다 약간의 소음이 있는 곳이 긴장을 풀어줘요.",
-        "💡 팁: 이동 중에는 상대방의 플레이리스트를 함께 들어보세요.",
-        "💡 팁: 가끔은 계획에 없던 골목길 산책이 더 기억에 남기도 해요.",
-        "💡 팁: 사진을 찍어줄 땐 수평을 맞추고 발끝을 화면 하단에 맞춰보세요!",
-        "💡 팁: 상대방의 컨디션을 수시로 체크하는 센스가 필요해요.",
-        "💡 팁: 대화가 끊길 땐 '가장 최근에 본 재밌는 영상' 이야기를 꺼내보세요.",
+        "💡 팁: 첫 만남이라면 너무 조용한 곳보다 약간의 소음이 있는 곳이 서로의 긴장을 자연스럽게 풀어줘요.",
+        "💡 팁: 함께 걷는 길 위에서 서로의 플레이리스트를 공유해보는 건 어떨까요?",
+        "💡 팁: 가끔은 지도 없이 우연히 마주친 작은 골목길이 더 짙은 기억으로 남기도 해요.",
+        "💡 팁: 소중한 사람의 찰나를 기록할 땐 수평을 맞추고 발끝을 화면 하단에 맞춰보세요.",
+        "💡 팁: 상대방의 보폭과 호흡을 맞추는 작은 배려가 오늘의 온도를 결정해요.",
+        "💡 팁: 대화가 잠시 멈췄을 땐, 지금 눈앞에 보이는 가장 예쁜 것에 대해 이야기해보세요.",
       ];
       
       let i = 0;
@@ -179,7 +179,7 @@ export default function DateThemeApp() {
     setFestMessage("");
 
     try {
-      const res = await fetch("/api/festivals", {
+      const res = await fetch(`/api/festivals?t=${Date.now()}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ region: condition.지역, month: targetMonth }),
@@ -209,32 +209,21 @@ export default function DateThemeApp() {
     setLoading(true);
     setErrorMsg("");
     
-    // 로컬 데이터베이스 (API 실패 시 대비용)
-    const LOCAL_FALLBACKS = [
-      { theme: "편의점 야식 + 드라마 정주행", emoji: "🍜", desc: "각자 먹고 싶은 거 고르고 소파에서 뒹굴뒹굴", vibe: "#편안함 #야식폭탄", doThis: ["편의점 털기", "드라마 정주행"], talkTopic: "과거로 돌아간다면?", randomTwist: "먹방 찍기", perfectFor: "집돌이 커플" },
-      { theme: "따릉이 레이스 + 한강 라면", emoji: "🚲", desc: "시원한 강바람 맞으며 자전거 타기", vibe: "#활동적 #낭만", doThis: ["자전거 타기", "즉석라면 먹기"], talkTopic: "올해 가장 행복한 순간?", randomTwist: "라면 내기", perfectFor: "운동 좋아하는 커플" },
-      { theme: "방구석 세계 미식 여행", emoji: "✈️", desc: "이국적인 음식 배달시켜 먹기", vibe: "#이색적 #배부름", doThis: ["태국 음식 배달", "여행 브이로그 시청"], talkTopic: "가고 싶은 나라는?", randomTwist: "현지어로 건배하기", perfectFor: "여행광 커플" },
-      { theme: "보드게임 카페 내기", emoji: "🎲", desc: "두뇌 풀가동 보드게임 대결", vibe: "#승부욕 #신남", doThis: ["스플랜더 하기", "벌칙 정하기"], talkTopic: "나의 장점과 약점은?", randomTwist: "진 사람이 소원 들어주기", perfectFor: "내기 좋아하는 커플" },
-      { theme: "서점 데이트 + 책 교환", emoji: "📚", desc: "서로에게 어울리는 책 선물하기", vibe: "#차분함 #감성", doThis: ["책 골라주기", "카페에서 읽기"], talkTopic: "이 책을 고른 이유?", randomTwist: "책에 편지 쓰기", perfectFor: "지적인 커플" }
-    ];
-
     try {
-      const res = await fetch("/api/theme", {
+      const res = await fetch(`/api/theme?t=${Date.now()}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ profile, taste, condition }),
       });
       
-      if (!res.ok) throw new Error("API Offline");
       const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "API Error");
+      
       setResult(data);
       setStep("result");
-    } catch (err) {
-      console.warn("API 호출 실패, 로컬 데이터로 전환합니다.", err);
-      // API 실패 시 로컬에서 하나 랜덤으로 뽑기
-      const randomFallback = LOCAL_FALLBACKS[Math.floor(Math.random() * LOCAL_FALLBACKS.length)];
-      setResult(randomFallback);
-      setStep("result");
+    } catch (err: any) {
+      console.error("API 호출 실패:", err);
+      setErrorMsg(`추천을 가져오지 못했습니다: ${err.message}. 잠시 후 다시 시도해 주세요.`);
     } finally {
       setLoading(false);
     }
@@ -253,7 +242,7 @@ export default function DateThemeApp() {
     const encodedData = encodeURIComponent(JSON.stringify(result));
     const shareUrl = `${window.location.origin}${window.location.pathname}?data=${encodedData}`;
     
-    const shareText = `[오늘 뭐하지? 🎲]\n오늘의 추천 데이트: ${result.theme}\n\n${result.desc}\n${result.vibe}\n\n상대방의 의견을 들려주세요!\n${shareUrl}`;
+    const shareText = `[오늘의 조각 🧩]\n함께 그려본 풍경: ${result.theme}\n\n${result.desc}\n${result.vibe}\n\n우리의 오늘을 이대로 채워볼까요?\n${shareUrl}`;
     
     try {
       if (typeof window !== "undefined" && (window as any).toss?.share) {
@@ -450,7 +439,7 @@ export default function DateThemeApp() {
         <div style={{ paddingTop: 56, paddingBottom: 24 }}>
           {step === "start" && (
             <h1 style={{ fontSize: 28, fontWeight: 700, lineHeight: 1.3, color: "#191F28" }}>
-              데이트/외출 테마가<br />고민이신가요? 🎲
+              누군가와 함께하는 오늘,<br />어떤 풍경을 담고 싶나요? ✨
             </h1>
           )}
           {step !== "start" && step !== "result" && (
@@ -478,15 +467,15 @@ export default function DateThemeApp() {
         {step === "start" && (
           <div className="fade-up">
             <p className="section-desc">
-              취향과 컨디션만 고르면<br />
-              오늘 딱 맞는 데이트를 골라드릴게요.
+              당신의 무드와 공기에 어우러지는<br />
+              오늘 하루의 조각들을 정성껏 찾아드릴게요.
             </p>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 48 }}>
               {[
-                { emoji: "⚡️", text: "오늘 바로 당장 할 수 있는 데이트" },
-                { emoji: "📅", text: "다음 주말을 위한 맞춤 계획" },
-                { emoji: "🤖", text: "AI가 실시간으로 분석해서 제안" },
+                { emoji: "✨", text: "지금 이 순간, 함께 채워갈 이야기" },
+                { emoji: "📅", text: "다가올 시간을 기다리는 설렘" },
+                { emoji: "🎨", text: "당신의 감성을 담은 맞춤형 큐레이션" },
               ].map((item, i) => (
                 <div key={i} style={{ display: "flex", alignItems: "center", gap: 14, background: "#FFFFFF", padding: "20px", borderRadius: "16px", boxShadow: "0 2px 8px rgba(0,0,0,0.02)" }}>
                   <span style={{ fontSize: 24 }}>{item.emoji}</span>
@@ -558,8 +547,8 @@ export default function DateThemeApp() {
         {/* 취향 선택 */}
         {step === "taste" && (
           <div className="fade-up">
-            <h2 className="section-title">오늘의 데이트 무드</h2>
-            <p className="section-desc">어떤 분위기를 원하시나요? (다중 선택 가능)</p>
+            <h2 className="section-title">우리의 무드</h2>
+            <p className="section-desc">오늘은 어떤 공기가 우리를 감싸길 원하나요? (다중 선택)</p>
 
             {Object.entries({ 무드: TAGS.무드, 활동: TAGS.활동 }).map(([cat, vals]) => (
               <div key={cat} style={{ marginBottom: 32 }}>
@@ -767,16 +756,18 @@ export default function DateThemeApp() {
 
               <div style={{ padding: "24px" }}>
                 {result.transportInfo && (
-                  <div style={{ background: "#F2F4F6", padding: "12px 16px", borderRadius: "12px", marginBottom: 24, display: "flex", alignItems: "center", gap: 10 }}>
-                    <span style={{ fontSize: 18 }}>{condition.이동수단?.includes("뚜벅이") ? "🚇" : "🅿️"}</span>
-                    <span style={{ fontSize: 13, color: "#4E5968", fontWeight: 500 }}>{result.transportInfo}</span>
+                  <div style={{ background: "#F2F4F6", padding: "16px 20px", borderRadius: "16px", marginBottom: 28, display: "flex", alignItems: "flex-start", gap: 12, border: "1px solid #E5E8EB" }}>
+                    <span style={{ fontSize: 20, marginTop: -2 }}>{condition.이동수단?.includes("자차") ? "🚗" : "🚌"}</span>
+                    <div style={{ flex: 1 }}>
+                       <p style={{ fontSize: 14, color: "#4E5968", fontWeight: 500, lineHeight: 1.5, wordBreak: "keep-all" }}>{result.transportInfo}</p>
+                    </div>
                   </div>
                 )}
 
                 <p style={{ fontSize: 13, fontWeight: 600, color: "#8B95A1", marginBottom: 16 }}>추천 활동</p>
                 {result.doThis?.map((item: string, i: number) => (
                   <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "14px 0", borderBottom: i === result.doThis.length - 1 ? "none" : "1px solid #F2F4F6" }}>
-                    <span style={{ color: "#3182F6", fontSize: 14, fontWeight: 700, flexShrink: 0 }}>
+                    <span style={{ color: "#3182F6", fontSize: 16, fontWeight: 800, flexShrink: 0, marginTop: 2 }}>
                       {String(i + 1).padStart(2, "0")}
                     </span>
                     <span style={{ color: "#333D4B", fontSize: 15, lineHeight: 1.5 }}>{item}</span>
@@ -786,8 +777,37 @@ export default function DateThemeApp() {
             </div>
 
             <div style={{ borderRadius: 16, padding: "20px 24px", background: "#FFFFFF", marginBottom: 12, boxShadow: "0 2px 8px rgba(0,0,0,0.02)" }}>
-              <p style={{ fontSize: 13, fontWeight: 600, color: "#8B95A1", marginBottom: 8 }}>오늘의 대화 주제</p>
-              <p style={{ color: "#333D4B", fontSize: 15, lineHeight: 1.6 }}>💬 {result.talkTopic}</p>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                <p style={{ fontSize: 13, fontWeight: 600, color: "#8B95A1", margin: 0 }}>오늘의 대화 주제</p>
+                <button 
+                  onClick={() => {
+                    const topics = [
+                      "만약 우리가 10년 뒤에 같은 장소에 온다면, 서로에게 어떤 모습이길 바래?",
+                      "지금 이 순간, 우리 주변에서 가장 너의 취향인 색깔은 뭐야?",
+                      "우리가 처음 만났던 날, 네 머릿속에 가장 먼저 떠올랐던 단어는?",
+                      "만약 오늘 하루를 영화로 만든다면, 제목은 무엇으로 짓고 싶어?",
+                      "서로의 플레이리스트 중 딱 한 곡만 뺏어올 수 있다면 어떤 노래야?",
+                      "네가 가장 좋아하는 계절의 냄새는 어떤 거야?",
+                      "우리가 함께 가본 곳 중, 가장 '우리답다'고 느껴진 장소는 어디야?",
+                      "지금 네 마음의 온도는 몇 도 정도인 것 같아?",
+                      "최근에 읽은 문장 중에 가장 마음을 울렸던 문장이 있어?",
+                      "만약 우리가 내일 아침에 눈을 떴는데, 서로의 몸이 바뀌어 있다면 가장 먼저 뭘 하고 싶어?"
+                    ];
+                    const randomTopic = topics[Math.floor(Math.random() * topics.length)];
+                    setResult(prev => prev ? { ...prev, talkTopic: randomTopic } : null);
+                    triggerHaptic("light");
+                  }}
+                  style={{ border: "none", background: "none", color: "#3182F6", fontSize: "12px", fontWeight: 600, cursor: "pointer" }}
+                >
+                  새로운 주제 ✨
+                </button>
+              </div>
+              <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+                <div style={{ width: 32, height: 32, borderRadius: "50%", background: "#F2F4F6", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 2 }}>
+                  <span style={{ fontSize: 16 }}>💬</span>
+                </div>
+                <p style={{ color: "#333D4B", fontSize: 15, lineHeight: 1.6, transition: "all 0.3s ease", margin: 0, fontWeight: 500 }}>{result.talkTopic}</p>
+              </div>
             </div>
 
             <div style={{ borderRadius: 16, padding: "20px 24px", background: "#E8F3FF", marginBottom: 12 }}>
@@ -795,8 +815,9 @@ export default function DateThemeApp() {
               <p style={{ color: "#1960CA", fontSize: 15, lineHeight: 1.6 }}>✨ {result.randomTwist}</p>
             </div>
 
-            <div style={{ borderRadius: 16, padding: "20px 24px", background: "#FFFFFF", marginBottom: 32, boxShadow: "0 2px 8px rgba(0,0,0,0.02)" }}>
-              <p style={{ color: "#4E5968", fontSize: 15, lineHeight: 1.6 }}>🫶 {result.perfectFor}</p>
+            <div style={{ borderRadius: 16, padding: "20px 24px", background: "#FFFFFF", marginBottom: 12, boxShadow: "0 2px 8px rgba(0,0,0,0.02)", display: "flex", alignItems: "center", gap: 12 }}>
+              <span style={{ fontSize: 20 }}>🫶</span>
+              <p style={{ color: "#4E5968", fontSize: 15, fontWeight: 500, lineHeight: 1.6, margin: 0 }}>{result.perfectFor}</p>
             </div>
 
             {/* 다음 데이트 예약 섹션 (추가됨) */}
@@ -807,10 +828,12 @@ export default function DateThemeApp() {
                 marginBottom: 32, border: "2px solid #E8F3FF",
                 boxShadow: "0 8px 24px rgba(49, 130, 246, 0.08)"
               }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-                  <span style={{ fontSize: 24 }}>{result.nextDate.emoji || "📅"}</span>
-                  <span style={{ fontSize: 14, fontWeight: 700, color: "#3182F6", letterSpacing: "-0.3px" }}>다음 데이트를 위해 예약할까요?</span>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
+                  <span style={{ fontSize: 22 }}>{result.nextDate.emoji || "📅"}</span>
+                  <span style={{ fontSize: 15, fontWeight: 600, color: "#3182F6" }}>다음 시간에 가볼 만한 곳</span>
                 </div>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: "#3182F6", letterSpacing: "-0.3px" }}>다음 시간에 우리 함께 예약할까요?</span>
+
                 <h3 style={{ fontSize: 20, fontWeight: 800, color: "#191F28", marginBottom: 10 }}>{result.nextDate.place}</h3>
                 <p style={{ fontSize: 14, color: "#4E5968", lineHeight: 1.6, marginBottom: 20 }}>{result.nextDate.reason}</p>
                 <button 
