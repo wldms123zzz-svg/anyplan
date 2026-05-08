@@ -1,146 +1,114 @@
-import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from "@google/generative-ai";
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 
 export const dynamic = 'force-dynamic';
-export const runtime = 'edge'; // Edge 런타임으로 30초까지 허용
+export const runtime = 'edge';
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
-
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
   try {
     const { profile, taste, condition } = await req.json();
+    const apiKey = process.env.GEMINI_API_KEY;
     const tourKey = process.env.TOUR_API_KEY;
+
+    if (!apiKey) throw new Error("GEMINI_API_KEY is missing");
+
     let realData = "";
-    
-    // 안전 필터 설정 (검열 완화)
-    const safetySettings = [
-      { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
-      { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
-      { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
-      { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
-    ];
+    const AREA_CODES: Record<string, string> = {
+      "서울": "1", "인천": "2", "대전": "3", "대구": "4", "광주": "5", "부산": "6", "울산": "7", "세종": "8",
+      "경기": "31", "강원": "32", "충북": "33", "충남": "34", "경북": "35", "경남": "36", "전북": "37", "전남": "38", "제주": "39"
+    };
+    const areaCode = AREA_CODES[condition.지역] || "";
 
-    if (tourKey && condition.지역 !== "전국") {
-      const AREA_CODES: Record<string, string> = {
-        "서울": "1", "인천": "2", "대전": "3", "대구": "4", "광주": "5", "부산": "6", "울산": "7", "세종": "8",
-        "경기": "31", "강원": "32", "충북": "33", "충남": "34", "경북": "35", "경남": "36", "전북": "37", "전남": "38", "제주": "39"
-      };
-      const areaCode = AREA_CODES[condition.지역] || "";
-      
-      const fetchTourData = async (contentType: string) => {
-        try {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 2000); // 2초 타임아웃
-          const url = `https://apis.data.go.kr/B551011/KorService2/areaBasedList2?serviceKey=${tourKey}&MobileOS=ETC&MobileApp=TodayDate&_type=json&areaCode=${areaCode}&contentTypeId=${contentType}&numOfRows=10&arrange=Q`;
-          const res = await fetch(url, { next: { revalidate: 3600 }, signal: controller.signal });
-          clearTimeout(timeoutId);
-          if (!res.ok) return null;
-          return await res.json();
-        } catch (e) { return null; }
-      };
-
-      const fetchFestivals = async () => {
-        try {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 2000);
-          const url = `https://apis.data.go.kr/B551011/KorService2/searchFestival2?serviceKey=${tourKey}&MobileOS=ETC&MobileApp=TodayDate&_type=json&areaCode=${areaCode}&eventStartDate=20240101&numOfRows=5`;
-          const res = await fetch(url, { next: { revalidate: 3600 }, signal: controller.signal });
-          clearTimeout(timeoutId);
-          if (!res.ok) return null;
-          return await res.json();
-        } catch (e) { return null; }
-      };
-
-      const [attractions, restaurants, festivals] = await Promise.all([
-        fetchTourData("12"), // 관광지
-        fetchTourData("39"), // 음식점
-        fetchFestivals()     // 축제
-      ]);
-      
-      const extractItems = (data: any) => {
+    // 실시간 지역 데이터 페칭 (안정적인 직접 fetch 사용)
+    if (tourKey && areaCode) {
+      try {
+        const url = `https://apis.data.go.kr/B551011/KorService2/areaBasedList2?serviceKey=${tourKey}&MobileOS=ETC&MobileApp=TodayDate&_type=json&areaCode=${areaCode}&numOfRows=15&arrange=Q`;
+        const res = await fetch(url, { next: { revalidate: 3600 } });
+        const data = await res.json();
         const items = data?.response?.body?.items?.item;
-        if (!items) return "";
-        return (Array.isArray(items) ? items : [items])
-          .map((i:any) => `${i.title}(${i.addr1 || ""})`)
-          .join(", ");
-      };
-
-      realData = `
-        [필독! 현지 실시간 장소 데이터]
-        관광명소: ${extractItems(attractions)}
-        인기 맛집: ${extractItems(restaurants)}
-        진행중 축제: ${extractItems(festivals)}
-      `;
+        if (items) {
+          realData = (Array.isArray(items) ? items : [items])
+            .map((i: any) => `${i.title}(${i.addr1 || ""})`)
+            .join(", ");
+        }
+      } catch (e) {
+        console.warn("Tour API Error, but continuing to AI...");
+      }
     }
 
-    // 최신 Gemini 1.5 Pro 모델 사용 (가장 풍부한 답변 보장)
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro", safetySettings });
-
-    const timestamp = new Date().toISOString();
-    
+    // Gemini API 직접 호출 (SDK 충돌 방지 및 Edge 런타임 최적화)
     const prompt = `
-      당신은 대한민국 최고의 '감성 데이트 큐레이터'입니다. 아래 정보를 바탕으로 한 편의 에세이처럼 아름답고 풍성한 데이트 테마를 제안해주세요.
+      당신은 대한민국 최고의 '지역 전문 데이트 플래너'입니다.
+
+      [핵심 요청]
+      사용자가 선택한 지역(${condition.지역})의 특색을 200% 살린 시적이고 풍성한 데이트 테마를 제안하세요.
+      반드시 제공된 '현지 실시간 데이터'를 활용하여 실제 상호명과 주소가 포함된 3단계 동선을 짜야 합니다.
 
       [사용자 정보]
       지역: ${condition.지역}, 무드: ${taste.무드}, 활동: ${taste.활동}, 예산: ${condition.예산}
-      사용자 상태: 본인(${condition.상태}), 상대방(${condition.동행인상태})
+      상태: 본인(${condition.상태}), 상대방(${condition.동행인상태})
 
-      [현지 실시간 데이터 (반드시 활용할 것)]
+      [현지 실시간 데이터]
       ${realData}
 
-      [필수 가이드라인]
-      1. 제목(theme)은 아주 시적이고 은유적으로 작성하세요. (예: "달빛 아래 흐르는 시간이 머무는 곳")
-      2. 설명(desc)은 최소 3문장 이상으로, 아주 감성적이고 풍부하게 작성하세요. 장소의 분위기와 그곳에서 느낄 감정을 묘사하세요.
-      3. 동선(doThis)은 각 단계마다 아주 구체적인 상호명과 그곳에서 해야 할 일을 자세히 적어주세요.
-      4. transportInfo 섹션에는 구체적인 버스 번호, 지하철역, 혹은 주차 팁을 적어주세요.
-      5. talkTopic에는 두 사람의 관계를 깊게 만들어줄 구체적인 질문을 하나 적어주세요.
-      6. randomTwist에는 "더 재밌게 하려면?" 섹션에 들어갈 깜짝 미션이나 팁을 기발하게 적어주세요.
-      7. 안내 문구(예: "AI가 추천한...")는 절대로 포함하지 마세요.
+      [응답 형식 (JSON)]
+      - theme: 아주 시적이고 감성적인 제목
+      - vibe: 3개 이상의 해시태그
+      - desc: 3문장 이상의 풍부한 설명
+      - doThis: 실제 지명이 포함된 3단계 상세 코스
+      - transportInfo: 구체적인 교통/주차 팁
+      - talkTopic: 대화 주제
+      - randomTwist: "더 재밌게 하려면?" 섹션용 깜짝 미션
+      - perfectFor: 타겟 커플 묘사
 
-      (JSON 형식으로만 응답: { "theme": "...", "desc": "...", "vibe": "...", "emoji": "...", "doThis": ["...", "...", "..."], "transportInfo": "...", "talkTopic": "...", "randomTwist": "...", "perfectFor": "..." })
+      JSON 형식으로만 답변하세요.
     `;
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${apiKey}`;
+    const geminiRes = await fetch(geminiUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { responseMimeType: "application/json" }
+      })
+    });
+
+    const geminiData = await geminiRes.json();
+    const text = geminiData.candidates?.[0]?.content?.parts?.[0]?.text;
     
-    if (!response.candidates || response.candidates.length === 0) {
-      throw new Error("AI가 답변을 생성할 수 없는 상태입니다.");
+    if (!text) throw new Error("AI 응답 없음");
+    return NextResponse.json(JSON.parse(text));
+
+  } catch (error: any) {
+    console.error("Critical Error:", error);
+    
+    // 지역 맞춤형 폴백 시스템
+    const isJeju = req.url.includes("제주") || JSON.stringify(req.body).includes("제주");
+    
+    if (isJeju) {
+      return NextResponse.json({
+        theme: "제주 에메랄드빛 해안 산책",
+        emoji: "🌊",
+        desc: "제주의 푸른 바다를 곁에 두고 걷는 낭만적인 시간입니다.",
+        vibe: "#제주감성 #바다멍 #힐링산책",
+        doThis: ["협재 해변 모래사장 걷기", "근처 오션뷰 카페에서 차 마시기", "노을 배경으로 인생샷 찍기"],
+        transportInfo: "제주 버스 202번 혹은 렌터카 이용을 권장합니다.",
+        talkTopic: "우리 제주도에서 살게 된다면 어떨까?",
+        randomTwist: "바닷가에서 예쁜 조개껍데기 하나씩 찾아주기!",
+        perfectFor: "바다를 사랑하는 모든 커플"
+      });
     }
 
-    const text = response.text();
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error("JSON 파싱 실패");
-    
-    return NextResponse.json(JSON.parse(jsonMatch[0]));
-  } catch (error: any) {
-    console.error("AI Error:", error);
-    // 폴백 응답 (다양한 백업 문구 활용)
-    const FALLBACKS = [
-      { theme: "한강 피크닉 데이트", emoji: "🧺", desc: "탁 트인 한강 뷰를 보며 힐링하는 시간", vibe: "여유롭고 평화로운 분위기", doThis: ["돗자리 펴고 배달 음식 먹기", "라면 조리기에서 라면 끓여 먹기", "노을 보며 물멍하기"] },
-      { theme: "레트로 오락실 데이트", emoji: "🕹️", desc: "추억의 게임으로 승부를 겨루는 재미", vibe: "왁자지껄 신나는 분위기", doThis: ["보글보글 끝판왕 도전", "철권으로 저녁 내기", "펌프로 체력 소모하기"] },
-      { theme: "조용한 북카페 데이트", emoji: "📚", desc: "책 냄새 가득한 곳에서 나누는 정적인 시간", vibe: "지적이고 차분한 분위기", doThis: ["서로에게 어울리는 책 골라주기", "좋아하는 구절 공유하기", "따뜻한 차 마시기"] },
-      { theme: "따릉이 시티 투어", emoji: "🚲", desc: "자전거를 타고 골목골목을 누비는 여행", vibe: "활동적이고 상쾌한 분위기", doThis: ["예쁜 카페 거리 자전거 타기", "숨겨진 공원 찾기", "편의점에서 시원한 음료수 마시기"] },
-      { theme: "궁궐 달빛 산책", emoji: "🌙", desc: "고즈넉한 고궁에서 느끼는 밤의 정취", vibe: "우아하고 낭만적인 분위기", doThis: ["한복 대여해서 사진 찍기", "궁궐 야간 관람하기", "돌담길 걷기"] }
-    ];
-    
-    const TWISTS = [
-      "서로의 장점 3가지 말해주기",
-      "오늘 찍은 사진 중 가장 맘에 드는 것 공유하기",
-      "상대방이 좋아하는 노래 한 곡 불러주기",
-      "오늘의 데이트를 한 단어로 정의하기",
-      "서로에게 고마운 점 하나씩 말하기"
-    ];
-
-    const randomIdx = Math.floor(Math.random() * FALLBACKS.length);
-    const randomTwistIdx = Math.floor(Math.random() * TWISTS.length);
-    const chosen = FALLBACKS[randomIdx];
-
     return NextResponse.json({
-      ...chosen,
-      transportInfo: "근처 대중교통 이용을 권장합니다.",
-      talkTopic: "우리가 처음 만났을 때 어떤 기분이었어?",
-      randomTwist: TWISTS[randomTwistIdx],
-      perfectFor: "모든 커플"
+      theme: "도심 속 낭만 산책",
+      emoji: "🏙️",
+      desc: "지친 일상을 잠시 잊고 가까운 곳에서 즐기는 여유로운 데이트입니다.",
+      vibe: "#도심힐링 #함께걷기 #소소한행복",
+      doThis: ["근처 공원 산책하기", "분위기 좋은 골목 맛집 탐방", "야경이 예쁜 곳에서 대화하기"],
+      transportInfo: "가까운 지하철역이나 대중교통 이용이 가장 편리합니다.",
+      talkTopic: "오늘 우리 데이트 점수를 매긴다면 몇 점?",
+      randomTwist: "서로의 장점 하나씩 말해준 뒤 하이파이브!",
+      perfectFor: "도심 속 쉼표가 필요한 커플"
     });
   }
 }
