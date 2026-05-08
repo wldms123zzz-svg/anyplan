@@ -314,13 +314,41 @@ export default function DateThemeApp() {
                 )}
                 <p style={{ fontSize: 13, fontWeight: 600, color: "#8B95A1", marginBottom: 16 }}>코스 안내</p>
                 {result.doThis.map((item, i) => (
-                  <div key={i} style={{ display: "flex", gap: 12, marginBottom: 16 }}>
-                    <span style={{ color: "#3182F6", fontWeight: 800 }}>{i + 1}</span>
-                    <span style={{ color: "#333D4B" }}>{item}</span>
+                  <div key={i} style={{ display: "flex", gap: 16, marginBottom: 20, alignItems: "flex-start" }}>
+                    <span style={{ 
+                      color: "#3182F6", 
+                      fontSize: 16, 
+                      fontWeight: 800, 
+                      fontFamily: "monospace",
+                      marginTop: 2,
+                      flexShrink: 0
+                    }}>
+                      {String(i + 1).padStart(2, "0")}
+                    </span>
+                    <span style={{ color: "#333D4B", fontSize: 15, lineHeight: 1.7, wordBreak: "keep-all" }}>
+                      {item}
+                    </span>
                   </div>
                 ))}
               </div>
             </div>
+
+            {/* 오늘의 대화 주제 */}
+            <div style={{ borderRadius: 16, padding: "20px 24px", background: "#FFFFFF", marginBottom: 12, boxShadow: "0 2px 8px rgba(0,0,0,0.02)" }}>
+              <p style={{ fontSize: 13, fontWeight: 600, color: "#8B95A1", marginBottom: 8 }}>오늘의 대화 주제 💬</p>
+              <p style={{ fontSize: 15, color: "#333D4B", fontWeight: 500, lineHeight: 1.5, margin: 0 }}>
+                {result.talkTopic}
+              </p>
+            </div>
+
+            {/* 더 재미있게 즐기려면? (돌발 미션) */}
+            <div style={{ borderRadius: 16, padding: "20px 24px", background: "#E8F3FF", marginBottom: 24, border: "1px solid #D0E6FF" }}>
+              <p style={{ fontSize: 13, fontWeight: 600, color: "#3182F6", marginBottom: 8 }}>더 재미있게 즐기려면? ✨</p>
+              <p style={{ fontSize: 15, color: "#1B64DA", fontWeight: 600, lineHeight: 1.5, margin: 0 }}>
+                {result.randomTwist}
+              </p>
+            </div>
+
             <div style={{ display: "flex", gap: 12 }}>
               <button className="roll-btn" style={{ background: "#E5E8EB", color: "#4E5968" }} onClick={reset}>처음으로</button>
               <button className="roll-btn" onClick={rollTheme}>다시 뽑기</button>
