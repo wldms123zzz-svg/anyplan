@@ -73,12 +73,13 @@ export async function POST(req: NextRequest) {
       `;
     }
 
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash", safetySettings });
+    // 최신 Gemini 1.5 Pro 모델 사용 (가장 풍부한 답변 보장)
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro", safetySettings });
 
     const timestamp = new Date().toISOString();
     
     const prompt = `
-      당신은 대한민국 최고의 로컬 데이트 플래너입니다. 아래 정보를 바탕으로 '전문가급' 데이트 테마를 제안해주세요.
+      당신은 대한민국 최고의 '감성 데이트 큐레이터'입니다. 아래 정보를 바탕으로 한 편의 에세이처럼 아름답고 풍성한 데이트 테마를 제안해주세요.
 
       [사용자 정보]
       지역: ${condition.지역}, 무드: ${taste.무드}, 활동: ${taste.활동}, 예산: ${condition.예산}
@@ -87,12 +88,14 @@ export async function POST(req: NextRequest) {
       [현지 실시간 데이터 (반드시 활용할 것)]
       ${realData}
 
-      [필수 지시사항]
-      1. '현지 실시간 데이터'에 제공된 실제 상호명과 주소를 바탕으로 3단계 상세 동선을 짜주세요. 
-      2. transportInfo 섹션에는 스크린샷처럼 구체적인 버스 번호, 지하철역, 혹은 주차 팁을 적어주세요.
-      3. 제목(theme)과 설명(desc)은 아주 시적이고 감성적으로 작성하세요. (예: "제주 서쪽 해안, 예술과 향기의 비밀 탐험")
-      4. 사용자가 '먹기'를 골랐으면 맛집을, '걷기'를 골랐으면 산책로나 둘레길을 메인으로 잡으세요.
-      5. '공짜'면 무료 입장 가능 장소를, '돈 쓸래요'면 럭셔리한 장소를 포함하세요.
+      [필수 가이드라인]
+      1. 제목(theme)은 아주 시적이고 은유적으로 작성하세요. (예: "달빛 아래 흐르는 시간이 머무는 곳")
+      2. 설명(desc)은 최소 3문장 이상으로, 아주 감성적이고 풍부하게 작성하세요. 장소의 분위기와 그곳에서 느낄 감정을 묘사하세요.
+      3. 동선(doThis)은 각 단계마다 아주 구체적인 상호명과 그곳에서 해야 할 일을 자세히 적어주세요.
+      4. transportInfo 섹션에는 구체적인 버스 번호, 지하철역, 혹은 주차 팁을 적어주세요.
+      5. talkTopic에는 두 사람의 관계를 깊게 만들어줄 구체적인 질문을 하나 적어주세요.
+      6. randomTwist에는 "더 재밌게 하려면?" 섹션에 들어갈 깜짝 미션이나 팁을 기발하게 적어주세요.
+      7. 안내 문구(예: "AI가 추천한...")는 절대로 포함하지 마세요.
 
       (JSON 형식으로만 응답: { "theme": "...", "desc": "...", "vibe": "...", "emoji": "...", "doThis": ["...", "...", "..."], "transportInfo": "...", "talkTopic": "...", "randomTwist": "...", "perfectFor": "..." })
     `;
@@ -100,9 +103,8 @@ export async function POST(req: NextRequest) {
     const result = await model.generateContent(prompt);
     const response = await result.response;
     
-    // 후보가 아예 없는 경우 (안전 필터 등에 의해 차단됨)
     if (!response.candidates || response.candidates.length === 0) {
-      throw new Error("AI가 답변을 생성할 수 없는 상태입니다 (Safety Block).");
+      throw new Error("AI가 답변을 생성할 수 없는 상태입니다.");
     }
 
     const text = response.text();
@@ -112,25 +114,32 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(JSON.parse(jsonMatch[0]));
   } catch (error: any) {
     console.error("AI Error:", error);
-    // 폴백 응답 (에러 시에도 화면이 깨지지 않게 함)
-    // 폴백 응답 (25가지 테마 중 랜덤 선택)
+    // 폴백 응답 (다양한 백업 문구 활용)
     const FALLBACKS = [
       { theme: "한강 피크닉 데이트", emoji: "🧺", desc: "탁 트인 한강 뷰를 보며 힐링하는 시간", vibe: "여유롭고 평화로운 분위기", doThis: ["돗자리 펴고 배달 음식 먹기", "라면 조리기에서 라면 끓여 먹기", "노을 보며 물멍하기"] },
       { theme: "레트로 오락실 데이트", emoji: "🕹️", desc: "추억의 게임으로 승부를 겨루는 재미", vibe: "왁자지껄 신나는 분위기", doThis: ["보글보글 끝판왕 도전", "철권으로 저녁 내기", "펌프로 체력 소모하기"] },
       { theme: "조용한 북카페 데이트", emoji: "📚", desc: "책 냄새 가득한 곳에서 나누는 정적인 시간", vibe: "지적이고 차분한 분위기", doThis: ["서로에게 어울리는 책 골라주기", "좋아하는 구절 공유하기", "따뜻한 차 마시기"] },
       { theme: "따릉이 시티 투어", emoji: "🚲", desc: "자전거를 타고 골목골목을 누비는 여행", vibe: "활동적이고 상쾌한 분위기", doThis: ["예쁜 카페 거리 자전거 타기", "숨겨진 공원 찾기", "편의점에서 시원한 음료수 마시기"] },
       { theme: "궁궐 달빛 산책", emoji: "🌙", desc: "고즈넉한 고궁에서 느끼는 밤의 정취", vibe: "우아하고 낭만적인 분위기", doThis: ["한복 대여해서 사진 찍기", "궁궐 야간 관람하기", "돌담길 걷기"] }
-      // ... 실제로는 더 많은 테마가 들어갑니다
     ];
+    
+    const TWISTS = [
+      "서로의 장점 3가지 말해주기",
+      "오늘 찍은 사진 중 가장 맘에 드는 것 공유하기",
+      "상대방이 좋아하는 노래 한 곡 불러주기",
+      "오늘의 데이트를 한 단어로 정의하기",
+      "서로에게 고마운 점 하나씩 말하기"
+    ];
+
     const randomIdx = Math.floor(Math.random() * FALLBACKS.length);
+    const randomTwistIdx = Math.floor(Math.random() * TWISTS.length);
     const chosen = FALLBACKS[randomIdx];
 
     return NextResponse.json({
       ...chosen,
-      desc: `(AI 연결 지연으로 추천된 코스입니다) ${chosen.desc}`,
       transportInfo: "근처 대중교통 이용을 권장합니다.",
-      talkTopic: "오늘 가장 즐거웠던 순간은?",
-      randomTwist: "지나가는 강아지에게 인사하기!",
+      talkTopic: "우리가 처음 만났을 때 어떤 기분이었어?",
+      randomTwist: TWISTS[randomTwistIdx],
       perfectFor: "모든 커플"
     });
   }
