@@ -56,14 +56,11 @@ export default function DateThemeApp() {
   const diceRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Hydration 이슈 방지를 위해 클라이언트에서만 날짜 설정
     setSelectedMonth(new Date().getMonth() + 1);
-
     const params = new URLSearchParams(window.location.search);
     const sharedData = params.get("data");
     if (sharedData) {
       try {
-        // btoa/atob 대신 안전한 URL 인코딩 데이터 복구
         const decodedData = decodeURIComponent(sharedData);
         const parsed = JSON.parse(decodedData);
         setResult(parsed);
@@ -74,19 +71,15 @@ export default function DateThemeApp() {
     }
   }, []);
 
-  // 토스 광고 로드
   useEffect(() => {
-    if (step === "result" && !loading) {
-      if (typeof window !== "undefined" && (window as any).toss?.ad?.showBanner) {
-        (window as any).toss.ad.showBanner({
-          adGroupId: "ait.v2.live.0cdc8d469958499a",
-          container: "#toss-ad-container",
-        });
-      }
+    if (typeof window !== "undefined" && (window as any).toss?.ad?.showBanner) {
+      (window as any).toss.ad.showBanner({
+        adGroupId: "ait.v2.live.0cdc8d469958499a",
+        container: "#toss-ad-container",
+      });
     }
   }, [step, loading]);
 
-  // 로딩 메시지 및 꿀팁 다이나믹 변경 (지루함 방지)
   useEffect(() => {
     let interval: any;
     let tipInterval: any;
@@ -94,49 +87,18 @@ export default function DateThemeApp() {
 
     if (loading) {
       setCountdown(5);
-      const messages = [
-        "📡 전국 축제 네트워크 접속 중...",
-        "🧠 완벽한 동선 설계 중...",
-        "🗺️ 지도를 펼쳐보는 중...",
-        "✨ 분위기 좋은 장소 찾는 중...",
-        "💡 특별한 대화 주제 고르는 중...",
-      ];
-      const tips = [
-        "💡 팁: 첫 만남이라면 너무 조용한 곳보다 약간의 소음이 있는 곳이 서로의 긴장을 자연스럽게 풀어줘요.",
-        "💡 팁: 함께 걷는 길 위에서 서로의 플레이리스트를 공유해보는 건 어떨까요?",
-        "💡 팁: 가끔은 지도 없이 우연히 마주친 작은 골목길이 더 짙은 기억으로 남기도 해요.",
-        "💡 팁: 소중한 사람의 찰나를 기록할 땐 수평을 맞추고 발끝을 화면 하단에 맞춰보세요.",
-        "💡 팁: 상대방의 보폭과 호흡을 맞추는 작은 배려가 오늘의 온도를 결정해요.",
-        "💡 팁: 대화가 잠시 멈췄을 땐, 지금 눈앞에 보이는 가장 예쁜 것에 대해 이야기해보세요.",
-      ];
-      
-      let i = 0;
-      let j = 0;
+      const messages = ["📡 전국 데이터 네트워크 접속 중...", "🧠 완벽한 동선 설계 중...", "✨ 분위기 좋은 장소 찾는 중...", "💡 특별한 대화 주제 고르는 중..."];
+      const tips = ["💡 팁: 가끔은 지도 없이 우연히 마주친 작은 골목길이 더 짙은 기억으로 남기도 해요.", "💡 팁: 소중한 사람의 찰나를 기록할 땐 수평을 맞춰보세요.", "💡 팁: 지금 눈앞에 보이는 가장 예쁜 것에 대해 이야기해보세요."];
+      let i = 0, j = 0;
       setLoadingText(messages[0]);
       setLoadingTextTip(tips[0]);
-
-      interval = setInterval(() => {
-        i = (i + 1) % messages.length;
-        setLoadingText(messages[i]);
-      }, 1500);
-
-      tipInterval = setInterval(() => {
-        j = (j + 1) % tips.length;
-        setLoadingTextTip(tips[j]);
-      }, 2500);
-
-      timer = setInterval(() => {
-        setCountdown((prev) => (prev > 1 ? prev - 1 : 1));
-      }, 1000);
+      interval = setInterval(() => { i = (i + 1) % messages.length; setLoadingText(messages[i]); }, 1500);
+      tipInterval = setInterval(() => { j = (j + 1) % tips.length; setLoadingTextTip(tips[j]); }, 2500);
+      timer = setInterval(() => { setCountdown((prev) => (prev > 1 ? prev - 1 : 1)); }, 1000);
     }
-    return () => {
-      clearInterval(interval);
-      clearInterval(tipInterval);
-      clearInterval(timer);
-    };
+    return () => { clearInterval(interval); clearInterval(tipInterval); clearInterval(timer); };
   }, [loading]);
 
-  // 토스 햅틱 래퍼 (안전하게 호출)
   const triggerHaptic = (type = "light") => {
     if (typeof window !== "undefined" && (window as any).toss?.haptic) {
       (window as any).toss.haptic(type);
@@ -145,10 +107,7 @@ export default function DateThemeApp() {
 
   const toggle = (cat: string, val: string) => {
     triggerHaptic("light");
-    setTaste((p: any) => ({
-      ...p,
-      [cat]: p[cat].includes(val) ? p[cat].filter((v: string) => v !== val) : [...p[cat], val]
-    }));
+    setTaste((p: any) => ({ ...p, [cat]: p[cat].includes(val) ? p[cat].filter((v: string) => v !== val) : [...p[cat], val] }));
   };
 
   const setCond = (key: string, val: string) => {
@@ -157,858 +116,222 @@ export default function DateThemeApp() {
   };
 
   const reset = () => {
-    triggerHaptic();
-    setStep("start");
-    setTaste({ 무드: [], 활동: [] });
-    setCondition({ myBody: "", partnerBody: "", 예산: "", 지역: "전국", mode: "", 이동수단: "" });
-    setResult(null);
-    setErrorMsg("");
+    triggerHaptic(); setStep("start"); setTaste({ 무드: [], 활동: [] }); setCondition({ myBody: "", partnerBody: "", 예산: "", 지역: "전국", mode: "", 이동수단: "" }); setResult(null); setErrorMsg("");
   };
-
-
-
 
   const fetchFestivals = async (month?: number) => {
     if (festLoading) return;
     const targetMonth = month || selectedMonth;
     if (month) setSelectedMonth(month);
-    
-    triggerHaptic();
-    setFestLoading(true);
-    setShowFestivals(true);
-    setFestMessage("");
-
+    triggerHaptic(); setFestLoading(true); setShowFestivals(true); setFestMessage("");
     try {
-      const res = await fetch(`/api/festivals?t=${Date.now()}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "";
+      const res = await fetch(`${API_BASE_URL}/api/festivals?t=${Date.now()}`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ region: condition.지역, month: targetMonth }),
       });
       const data = await res.json();
-      if (data.error) {
-        setFestMessage(data.error);
-        setFestivals([]);
-      } else if (data.message) {
-        setFestMessage(data.message);
-        setFestivals([]);
-      } else {
-        setFestivals(Array.isArray(data) ? data : []);
-      }
-    } catch (err) {
-      console.error(err);
-      setFestMessage("축제 정보를 불러오는 중 일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
-      setFestivals([]);
-    } finally {
-      setFestLoading(false);
-    }
+      if (data.error || data.message) { setFestMessage(data.error || data.message); setFestivals([]); }
+      else { setFestivals(Array.isArray(data) ? data : []); }
+    } catch (err) { setFestMessage("오류가 발생했습니다."); setFestivals([]); }
+    finally { setFestLoading(false); }
   };
 
   const rollTheme = async () => {
     if (loading) return;
-    triggerHaptic();
-    setLoading(true);
-    setErrorMsg("");
-    
+    triggerHaptic(); setLoading(true); setErrorMsg("");
     try {
-      const res = await fetch(`/api/theme?t=${Date.now()}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "";
+      const res = await fetch(`${API_BASE_URL}/api/theme?t=${Date.now()}`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ profile, taste, condition }),
       });
-      
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "API Error");
-      
-      setResult(data);
-      setStep("result");
-    } catch (err: any) {
-      console.error("API 호출 실패:", err);
-      setErrorMsg(`추천을 가져오지 못했습니다: ${err.message}. 잠시 후 다시 시도해 주세요.`);
-    } finally {
-      setLoading(false);
-    }
+      setResult(data); setStep("result");
+    } catch (err: any) { setErrorMsg(`추천 실패: ${err.message}`); }
+    finally { setLoading(false); }
   };
 
   const handleShare = async () => {
-    if (isSharing) return;
-    setIsSharing(true);
-    triggerHaptic("light");
-    if (!result) {
-      setIsSharing(false);
-      return;
-    }
-
-    // 데이터 인코딩 (btoa 대신 안전한 URL 인코딩 방식 사용)
+    if (isSharing || !result) return;
+    setIsSharing(true); triggerHaptic("light");
     const encodedData = encodeURIComponent(JSON.stringify(result));
     const shareUrl = `${window.location.origin}${window.location.pathname}?data=${encodedData}`;
-    
-    const shareText = `[오늘의 조각 🧩]\n함께 그려본 풍경: ${result.theme}\n\n${result.desc}\n${result.vibe}\n\n우리의 오늘을 이대로 채워볼까요?\n${shareUrl}`;
-    
+    const shareText = `[오늘의 조각 🧩]\n${result.theme}\n${shareUrl}`;
     try {
-      if (typeof window !== "undefined" && (window as any).toss?.share) {
-        await (window as any).toss.share({
-          text: shareText,
-        });
-      } else if (navigator.share) {
-        await navigator.share({
-          title: "오늘 뭐하지? 데이트 추천",
-          text: shareText,
-          url: shareUrl,
-        });
-      } else {
-        await navigator.clipboard.writeText(shareText);
-        alert("공유 링크와 내용이 복사되었습니다!");
-      }
-    } catch (err) {
-      console.error("Share failed", err);
-      // 취소된 경우 에러 로그만 남김
-    } finally {
-      // 약간의 지연 후 상태 해제하여 중복 클릭 방지
-      setTimeout(() => setIsSharing(false), 500);
-    }
+      if (typeof window !== "undefined" && (window as any).toss?.share) { await (window as any).toss.share({ text: shareText }); }
+      else if (navigator.share) { await navigator.share({ title: "데이트 추천", text: shareText, url: shareUrl }); }
+      else { await navigator.clipboard.writeText(shareText); alert("복사되었습니다!"); }
+    } catch (err) {} finally { setTimeout(() => setIsSharing(false), 500); }
   };
 
   const handleVote = (vote: string) => {
-    triggerHaptic(vote === "agree" ? "success" : "light");
-    setPartnerVote(vote);
-    
-    // 투표 결과를 다시 공유할 수 있게 텍스트 생성
-    const voteText = vote === "agree" ? "👍 이 데이트 찬성! 완전 좋아." : "👎 음, 이건 좀 별로야. 다른 거 뽑아보자!";
-    
-    if (confirm(`${vote === "agree" ? "찬성" : "반대"}하셨습니다! 결과를 상대방에게 보낼까요?`)) {
-      if (typeof window !== "undefined" && (window as any).toss?.share) {
-        (window as any).toss.share({ text: voteText });
-      } else if (navigator.share) {
-        navigator.share({ text: voteText });
-      } else {
-        navigator.clipboard.writeText(voteText);
-        alert("투표 결과가 복사되었습니다. 상대방에게 보내주세요!");
-      }
+    triggerHaptic(vote === "agree" ? "success" : "light"); setPartnerVote(vote);
+    const voteText = vote === "agree" ? "👍 이 데이트 찬성!" : "👎 다른 거 뽑자!";
+    if (confirm("결과를 공유할까요?")) {
+      if (typeof window !== "undefined" && (window as any).toss?.share) { (window as any).toss.share({ text: voteText }); }
+      else if (navigator.share) { navigator.share({ text: voteText }); }
     }
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "#F2F4F6", color: "#191F28", fontFamily: "'Pretendard Variable', Pretendard, -apple-system, sans-serif", overflowX: "hidden" }}>
-      <style>{`
-        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
-        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-
-        @keyframes fadeUp {
-          from { opacity: 0; transform: translateY(15px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes rolling {
-          0% { transform: scale(1) rotate(0deg); }
-          25% { transform: scale(1.2) rotate(90deg) translateY(-20px); }
-          50% { transform: scale(1) rotate(180deg) translateY(0); }
-          75% { transform: scale(1.2) rotate(270deg) translateY(-20px); }
-          100% { transform: scale(1) rotate(360deg) translateY(0); }
-        }
-
-        .fade-up { animation: fadeUp 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
-        .rolling {
-          animation: rolling 2s infinite cubic-bezier(0.45, 0.05, 0.55, 0.95);
-          display: inline-block;
-          filter: drop-shadow(0 10px 15px rgba(0,0,0,0.1));
-        }
-
-        .tag-btn {
-          padding: 12px 16px;
-          border-radius: 12px;
-          border: none;
-          background: #FFFFFF;
-          color: #4E5968;
-          font-size: 15px;
-          font-weight: 500;
-          cursor: pointer;
-          transition: all 0.15s ease;
-          font-family: inherit;
-        }
-        .tag-btn:active { transform: scale(0.96); }
-        .tag-btn.active {
-          background: #E8F3FF;
-          color: #3182F6;
-          font-weight: 600;
-        }
-
-        .mode-card {
-          border: none;
-          border-radius: 16px;
-          padding: 24px;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          background: #FFFFFF;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.02);
-        }
-        .mode-card:active { transform: scale(0.98); }
-        .mode-card.active {
-          background: #E8F3FF;
-          box-shadow: inset 0 0 0 2px #3182F6;
-        }
-
-        .roll-btn {
-          width: 100%;
-          padding: 18px;
-          border-radius: 16px;
-          border: none;
-          background: #3182F6;
-          color: #FFFFFF;
-          font-size: 17px;
-          font-weight: 600;
-          cursor: pointer;
-          font-family: inherit;
-          transition: all 0.2s ease;
-        }
-        .roll-btn:active:not(:disabled) { transform: scale(0.98); background: #1B64DA; }
-        .roll-btn:disabled { background: #D1D6DB; color: #FFFFFF; cursor: not-allowed; }
-
-        .roll-btn:disabled { background: #D1D6DB; color: #FFFFFF; cursor: not-allowed; }
-        
-        .loading-overlay {
-          position: fixed;
-          top: 0; left: 0; right: 0; bottom: 0;
-          background: rgba(255, 255, 255, 0.95);
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          z-index: 9999;
-          padding: 24px;
-          text-align: center;
-          backdrop-filter: blur(8px);
-        }
-
-        .result-card {
-          border-radius: 24px;
-          background: #FFFFFF;
-          overflow: hidden;
-          box-shadow: 0 4px 16px rgba(0,0,0,0.04);
-        }
-
-        .step-dot {
-          width: 8px; height: 8px;
-          border-radius: 50%;
-          background: #D1D6DB;
-          flex-shrink: 0;
-          margin-top: 6px;
-          transition: background 0.3s;
-        }
-        .step-dot.active { background: #3182F6; }
-        
-        .section-title {
-          font-size: 22px;
-          font-weight: 700;
-          margin-bottom: 8px;
-          color: #191F28;
-        }
-        
-        .section-desc {
-          color: #8B95A1;
-          font-size: 15px;
-          margin-bottom: 24px;
-          line-height: 1.5;
-        }
+    <div style={{ minHeight: "100vh", background: "#F2F4F6", color: "#191F28", fontFamily: "Pretendard, -apple-system, sans-serif", paddingBottom: "100px" }}>
+      <style jsx global>{`
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes rolling { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .fade-up { animation: fadeUp 0.4s ease-out forwards; }
+        .rolling { animation: rolling 2s infinite linear; display: inline-block; }
+        .tag-btn { padding: 12px 16px; border-radius: 12px; border: none; background: #FFF; color: #4E5968; font-size: 15px; cursor: pointer; transition: all 0.2s; }
+        .tag-btn.active { background: #E8F3FF; color: #3182F6; font-weight: 600; }
+        .roll-btn { width: 100%; padding: 18px; border-radius: 16px; border: none; background: #3182F6; color: #FFF; font-size: 17px; font-weight: 600; cursor: pointer; }
+        .roll-btn:disabled { background: #D1D6DB; }
       `}</style>
 
-      {/* 로딩 오버레이 */}
       {loading && (
-        <div className="loading-overlay fade-up">
-          <div style={{ fontSize: 64, marginBottom: 32 }} className="rolling">🎲</div>
-          <h2 style={{ fontSize: 24, fontWeight: 700, marginBottom: 12, color: "#191F28" }}>{loadingText}</h2>
-          <p style={{ fontSize: 16, color: "#4E5968", marginBottom: 32 }}>
-            AI가 가장 기발한 코스를 짜는 중입니다.<br />
-            <strong>약 {countdown}초만</strong> 더 기다려주세요!
-          </p>
-          <div style={{ width: "100%", maxWidth: 200, height: 6, background: "#E5E8EB", borderRadius: 3, overflow: "hidden", marginBottom: 40 }}>
-            <div style={{ 
-              width: `${((5 - countdown) / 5) * 100}%`, 
-              height: "100%", 
-              background: "#3182F6", 
-              transition: "width 1s linear" 
-            }} />
-          </div>
-
-          <div className="fade-up" style={{ padding: "16px 20px", background: "#F9FAFB", borderRadius: "12px", border: "1px solid #F2F4F6", width: "100%", maxWidth: 320 }}>
-             <p style={{ fontSize: 14, color: "#4E5968", lineHeight: 1.6, wordBreak: "keep-all" }}>{loadingTip}</p>
-          </div>
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(255,255,255,0.9)", zIndex: 9999, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24, textAlign: "center" }}>
+          <div style={{ fontSize: 64, marginBottom: 24 }} className="rolling">🎲</div>
+          <h2 style={{ fontSize: 24, fontWeight: 700, marginBottom: 12 }}>{loadingText}</h2>
+          <p style={{ color: "#4E5968", marginBottom: 32 }}>약 {countdown}초만 기다려주세요!</p>
+          <div style={{ padding: "16px 20px", background: "#F9FAFB", borderRadius: "12px", border: "1px solid #F2F4F6", maxWidth: 320 }}>{loadingTip}</div>
         </div>
       )}
 
-      <div style={{ maxWidth: 480, margin: "0 auto", padding: "0 20px 100px" }}>
-        {/* 헤더 */}
+      <div style={{ maxWidth: 480, margin: "0 auto", padding: "0 20px" }}>
         <div style={{ paddingTop: 56, paddingBottom: 24 }}>
-          {step === "start" && (
-            <h1 style={{ fontSize: 28, fontWeight: 700, lineHeight: 1.3, color: "#191F28" }}>
-              누군가와 함께하는 오늘,<br />어떤 풍경을 담고 싶나요? ✨
-            </h1>
-          )}
-          {step !== "start" && step !== "result" && (
-            <div style={{ display: "flex", gap: 6, marginTop: 20 }}>
+          {step === "start" ? (
+            <h1 style={{ fontSize: 28, fontWeight: 700, lineHeight: 1.3 }}>누군가와 함께하는 오늘,<br />어떤 풍경을 담고 싶나요? ✨</h1>
+          ) : step !== "result" ? (
+            <div style={{ display: "flex", gap: 6 }}>
               {["profile", "taste", "condition"].map((s, i) => (
-                <div key={i} className={`step-dot ${
-                  step === s || 
-                  (s === "profile" && (step === "taste" || step === "condition")) ||
-                  (s === "taste" && step === "condition") 
-                  ? "active" : ""
-                }`} />
+                <div key={i} style={{ width: 8, height: 8, borderRadius: "50%", background: step === s ? "#3182F6" : "#D1D6DB" }} />
               ))}
             </div>
-          )}
+          ) : null}
         </div>
 
-        {/* 에러 메시지 표시 */}
-        {errorMsg && (
-          <div style={{ background: "#FEE2E2", color: "#EF4444", padding: "16px", borderRadius: "12px", marginBottom: "20px", fontSize: "14px", fontWeight: 500 }}>
-            {errorMsg}
-          </div>
-        )}
+        {errorMsg && <div style={{ background: "#FEE2E2", color: "#EF4444", padding: "16px", borderRadius: "12px", marginBottom: 20 }}>{errorMsg}</div>}
 
-        {/* 시작 화면 */}
         {step === "start" && (
           <div className="fade-up">
-            <p className="section-desc">
-              당신의 무드와 공기에 어우러지는<br />
-              오늘 하루의 조각들을 정성껏 찾아드릴게요.
-            </p>
-
             <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 48 }}>
-              {[
-                { emoji: "✨", text: "지금 이 순간, 함께 채워갈 이야기" },
-                { emoji: "📅", text: "다가올 시간을 기다리는 설렘" },
-                { emoji: "🎨", text: "당신의 감성을 담은 맞춤형 큐레이션" },
-              ].map((item, i) => (
-                <div key={i} style={{ display: "flex", alignItems: "center", gap: 14, background: "#FFFFFF", padding: "20px", borderRadius: "16px", boxShadow: "0 2px 8px rgba(0,0,0,0.02)" }}>
-                  <span style={{ fontSize: 24 }}>{item.emoji}</span>
-                  <span style={{ fontSize: 16, fontWeight: 500, color: "#333D4B" }}>{item.text}</span>
-                </div>
+              {["✨ 함께 채워갈 이야기", "📅 다가올 설렘", "🎨 맞춤형 큐레이션"].map((t, i) => (
+                <div key={i} style={{ background: "#FFF", padding: 20, borderRadius: 16 }}>{t}</div>
               ))}
             </div>
-
-            <button className="roll-btn" onClick={() => { triggerHaptic(); setStep("profile"); }}>
-              시작하기
-            </button>
+            <button className="roll-btn" onClick={() => setStep("profile")}>시작하기</button>
           </div>
         )}
 
-        {/* 프로필 선택 */}
         {step === "profile" && (
           <div className="fade-up">
-            <h2 className="section-title">누구와 함께 가나요?</h2>
-            <p className="section-desc">나이 차이에 따라 맞춤형(예: 부모님)으로 제안해 드려요.</p>
-
-            <div style={{ marginBottom: 32, background: "#FFFFFF", padding: "24px", borderRadius: "16px", boxShadow: "0 2px 8px rgba(0,0,0,0.02)" }}>
-              <p style={{ fontSize: 16, fontWeight: 700, color: "#333D4B", marginBottom: 16 }}>😎 나의 정보</p>
-              <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-                <input 
-                  type="number" 
-                  value={profile.myAge} 
-                  onChange={e => setProfile({...profile, myAge: parseInt(e.target.value) || 0})}
-                  style={{ width: "80px", padding: "12px", borderRadius: "12px", border: "1px solid #E5E8EB", fontSize: "16px" }}
-                /> <span style={{ color: "#4E5968", fontWeight: 500 }}>세</span>
-                <div style={{ display: "flex", gap: 8, marginLeft: "auto" }}>
-                  {["여", "남"].map(g => (
-                    <button 
-                      key={g} 
-                      onClick={() => setProfile({...profile, myGender: g})}
-                      style={{ padding: "10px 16px", borderRadius: "10px", border: "none", background: profile.myGender === g ? "#3182F6" : "#F2F4F6", color: profile.myGender === g ? "#FFF" : "#4E5968", fontWeight: 600 }}
-                    >{g}</button>
-                  ))}
-                </div>
-              </div>
+            <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 24 }}>누구와 함께 가나요?</h2>
+            <div style={{ background: "#FFF", padding: 24, borderRadius: 16, marginBottom: 20 }}>
+              <p style={{ fontWeight: 700, marginBottom: 16 }}>😎 나의 나이</p>
+              <input type="number" value={profile.myAge} onChange={e => setProfile({...profile, myAge: parseInt(e.target.value) || 0})} style={{ width: "100%", padding: 12, borderRadius: 12, border: "1px solid #EEE" }} />
             </div>
-
-            <div style={{ marginBottom: 32, background: "#FFFFFF", padding: "24px", borderRadius: "16px", boxShadow: "0 2px 8px rgba(0,0,0,0.02)" }}>
-              <p style={{ fontSize: 16, fontWeight: 700, color: "#333D4B", marginBottom: 16 }}>🧑‍🤝‍🧑 동행인 정보</p>
-              <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-                <input 
-                  type="number" 
-                  value={profile.partnerAge} 
-                  onChange={e => setProfile({...profile, partnerAge: parseInt(e.target.value) || 0})}
-                  style={{ width: "80px", padding: "12px", borderRadius: "12px", border: "1px solid #E5E8EB", fontSize: "16px" }}
-                /> <span style={{ color: "#4E5968", fontWeight: 500 }}>세</span>
-                <div style={{ display: "flex", gap: 8, marginLeft: "auto" }}>
-                  {["여", "남"].map(g => (
-                    <button 
-                      key={g} 
-                      onClick={() => setProfile({...profile, partnerGender: g})}
-                      style={{ padding: "10px 16px", borderRadius: "10px", border: "none", background: profile.partnerGender === g ? "#F04452" : "#F2F4F6", color: profile.partnerGender === g ? "#FFF" : "#4E5968", fontWeight: 600 }}
-                    >{g}</button>
-                  ))}
-                </div>
-              </div>
+            <div style={{ background: "#FFF", padding: 24, borderRadius: 16, marginBottom: 32 }}>
+              <p style={{ fontWeight: 700, marginBottom: 16 }}>🧑‍🤝‍🧑 동행인 나이</p>
+              <input type="number" value={profile.partnerAge} onChange={e => setProfile({...profile, partnerAge: parseInt(e.target.value) || 0})} style={{ width: "100%", padding: 12, borderRadius: 12, border: "1px solid #EEE" }} />
             </div>
-
-            <button className="roll-btn" onClick={() => { triggerHaptic(); setStep("taste"); }}>
-              다음
-            </button>
+            <button className="roll-btn" onClick={() => setStep("taste")}>다음</button>
           </div>
         )}
 
-        {/* 취향 선택 */}
         {step === "taste" && (
           <div className="fade-up">
-            <h2 className="section-title">우리의 무드</h2>
-            <p className="section-desc">오늘은 어떤 공기가 우리를 감싸길 원하나요? (다중 선택)</p>
-
-            {Object.entries({ 무드: TAGS.무드, 활동: TAGS.활동 }).map(([cat, vals]) => (
+            <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 24 }}>우리의 무드와 활동</h2>
+            {["무드", "활동"].map((cat: any) => (
               <div key={cat} style={{ marginBottom: 32 }}>
                 <p style={{ fontSize: 14, fontWeight: 600, color: "#4E5968", marginBottom: 12 }}>{cat}</p>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                  {vals.map(v => (
-                    <button
-                      key={v}
-                      className={`tag-btn ${taste[cat].includes(v) ? "active" : ""}`}
-                      onClick={() => toggle(cat, v)}
-                    >
-                      {v}
-                    </button>
+                  {TAGS[cat as keyof typeof TAGS].map((v: string) => (
+                    <button key={v} className={`tag-btn ${taste[cat as "무드" | "활동"].includes(v) ? "active" : ""}`} onClick={() => toggle(cat, v)}>{v}</button>
                   ))}
                 </div>
               </div>
             ))}
-
-            <div style={{ display: "flex", gap: 12 }}>
-              <button
-                onClick={() => { triggerHaptic(); setStep("profile"); }}
-                style={{ flex: "0 0 auto", padding: "18px 24px", borderRadius: "16px", border: "none", background: "#E5E8EB", color: "#4E5968", cursor: "pointer", fontSize: 16, fontWeight: 600 }}
-              >
-                이전
-              </button>
-              <button className="roll-btn" style={{ flex: 1 }} onClick={() => { triggerHaptic(); setStep("condition"); }}>
-                다음
-              </button>
-            </div>
+            <button className="roll-btn" onClick={() => setStep("condition")}>다음</button>
           </div>
         )}
 
-        {/* 컨디션 선택 */}
         {step === "condition" && (
           <div className="fade-up">
-            <h2 className="section-title">오늘 컨디션 & 예산</h2>
-            <p className="section-desc">현재 기분과 상황을 솔직하게 골라주세요.</p>
-
-            {/* 몸 상태 */}
+            <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 24 }}>장소 및 예산</h2>
             <div style={{ marginBottom: 32 }}>
-              <p style={{ fontSize: 14, fontWeight: 600, color: "#4E5968", marginBottom: 12 }}>내 몸 상태</p>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                {TAGS.몸상태.map(v => (
-                  <button
-                    key={v}
-                    className={`tag-btn ${condition.myBody === v ? "active" : ""}`}
-                    style={{ textAlign: "center", padding: "14px 10px", fontSize: "14px" }}
-                    onClick={() => setCond("myBody", v)}
-                  >
-                    {v}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div style={{ marginBottom: 32 }}>
-              <p style={{ fontSize: 14, fontWeight: 600, color: "#4E5968", marginBottom: 12 }}>동행인 몸 상태</p>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                {TAGS.몸상태.map(v => (
-                  <button
-                    key={v}
-                    className={`tag-btn ${condition.partnerBody === v ? "active" : ""}`}
-                    style={{ textAlign: "center", padding: "14px 10px", fontSize: "14px" }}
-                    onClick={() => setCond("partnerBody", v)}
-                  >
-                    {v}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* 예산 */}
-            <div style={{ marginBottom: 32 }}>
-              <p style={{ fontSize: 14, fontWeight: 600, color: "#4E5968", marginBottom: 12 }}>예산</p>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {TAGS.예산.map(v => (
-                  <button
-                    key={v}
-                    className={`tag-btn ${condition.예산 === v ? "active" : ""}`}
-                    style={{ padding: "18px 20px", fontSize: "16px", fontWeight: condition.예산 === v ? 700 : 500 }}
-                    onClick={() => setCond("예산", v)}
-                  >
-                    {v}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* 지역 (문화생활/축제 연동) */}
-            <div style={{ marginBottom: 40, background: "#F9FAFB", padding: "20px", borderRadius: "16px", border: "1px solid #F2F4F6" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                <p style={{ fontSize: 14, fontWeight: 600, color: "#333D4B", margin: 0 }}>🎪 근처 지역축제/전시 찾아보기</p>
-              </div>
-              <p style={{ fontSize: 13, color: "#8B95A1", marginBottom: 16 }}>해당 지역의 실제 행사 정보를 데이트 코스에 반영합니다.</p>
+              <p style={{ fontSize: 14, fontWeight: 600, color: "#4E5968", marginBottom: 12 }}>지역</p>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                 {TAGS.지역.map(v => (
-                  <button
-                    key={v}
-                    style={{
-                      padding: "8px 14px", borderRadius: "20px", border: "none", fontSize: "14px", fontWeight: 500, cursor: "pointer",
-                      background: condition.지역 === v ? "#3182F6" : "#FFFFFF",
-                      color: condition.지역 === v ? "#FFFFFF" : "#4E5968",
-                      boxShadow: "0 1px 3px rgba(0,0,0,0.05)"
-                    }}
-                    onClick={() => setCond("지역", v)}
-                  >
-                    {v}
-                  </button>
+                  <button key={v} className={`tag-btn ${condition.지역 === v ? "active" : ""}`} onClick={() => setCond("지역", v)}>{v}</button>
                 ))}
               </div>
             </div>
-
-            {/* 이동수단 */}
-            <div style={{ marginBottom: 32 }}>
-              <p style={{ fontSize: 14, fontWeight: 600, color: "#4E5968", marginBottom: 12 }}>이동 수단</p>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                {TAGS.이동수단.map(v => (
-                  <button
-                    key={v}
-                    className={`tag-btn ${condition.이동수단 === v ? "active" : ""}`}
-                    style={{ textAlign: "center", padding: "14px 10px", fontSize: "14px" }}
-                    onClick={() => setCond("이동수단", v)}
-                  >
-                    {v}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* 모드 및 축제 정보 */}
             <div style={{ marginBottom: 40 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                <p style={{ fontSize: 14, fontWeight: 600, color: "#4E5968", margin: 0 }}>상황 및 축제 정보</p>
-                {condition.지역 && condition.지역 !== "전국" && (
-                  <button 
-                    onClick={() => fetchFestivals()}
-                    style={{ 
-                      fontSize: 12, padding: "6px 10px", borderRadius: "8px", border: "none", 
-                      background: "#F2F4F6", color: "#3182F6", fontWeight: 600, cursor: "pointer" 
-                    }}
-                  >
-                    🎭 {condition.지역} 다가오는 축제
-                  </button>
-                )}
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                {[
-                  { id: "today", emoji: "⚡️", label: "오늘 바로", sub: "지금 당장 할 수 있는" },
-                  { id: "plan", emoji: "📅", label: "미리 계획", sub: "다음 데이트용" }
-                ].map(m => (
-                  <button
-                    key={m.id}
-                    className={`mode-card ${condition.mode === m.id ? "active" : ""}`}
-                    onClick={() => setCond("mode", m.id)}
-                    style={{ textAlign: "left" }}
-                  >
-                    <div style={{ fontSize: 28, marginBottom: 12 }}>{m.emoji}</div>
-                    <div style={{ fontSize: 16, fontWeight: 600, color: condition.mode === m.id ? "#3182F6" : "#333D4B", marginBottom: 4 }}>{m.label}</div>
-                    <div style={{ fontSize: 13, color: condition.mode === m.id ? "#8B95A1" : "#8B95A1" }}>{m.sub}</div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div style={{ display: "flex", gap: 12 }}>
-              <button
-                onClick={() => { triggerHaptic(); setStep("taste"); }}
-                style={{ flex: "0 0 auto", padding: "18px 24px", borderRadius: "16px", border: "none", background: "#E5E8EB", color: "#4E5968", cursor: "pointer", fontSize: 16, fontWeight: 600 }}
-              >
-                이전
-              </button>
-              <button
-                className="roll-btn"
-                style={{ flex: 1 }}
-                disabled={!condition.myBody || !condition.partnerBody || !condition.예산 || !condition.mode || loading}
-                onClick={rollTheme}
-              >
-                {loading ? loadingText : "테마 뽑기"}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* 결과 화면 */}
-        {step === "result" && result && (
-          <div className="fade-up">
-            <div className="result-card" style={{ marginBottom: 20 }}>
-              <div style={{ padding: "32px 24px 24px", background: "#F9FAFB" }}>
-                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 16 }}>
-                  <div style={{ fontSize: 56, lineHeight: 1 }} ref={diceRef} className={rolling ? "rolling" : ""}>
-                    {result.emoji}
-                  </div>
-                </div>
-
-                <h2 style={{ fontSize: 26, fontWeight: 700, lineHeight: 1.3, marginBottom: 10, color: "#191F28" }}>
-                  {result.theme}
-                </h2>
-                <p style={{ color: "#4E5968", fontSize: 15, lineHeight: 1.6, marginBottom: 16 }}>
-                  {result.desc}
-                </p>
-                <p style={{ fontSize: 14, fontWeight: 500, color: "#3182F6" }}>
-                  {result.vibe}
-                </p>
-              </div>
-
-              <div style={{ padding: "24px" }}>
-                {result.transportInfo && (
-                  <div style={{ background: "#F2F4F6", padding: "16px 20px", borderRadius: "16px", marginBottom: 28, display: "flex", alignItems: "flex-start", gap: 12, border: "1px solid #E5E8EB" }}>
-                    <span style={{ fontSize: 20, marginTop: -2 }}>{condition.이동수단?.includes("자차") ? "🚗" : "🚌"}</span>
-                    <div style={{ flex: 1 }}>
-                       <p style={{ fontSize: 14, color: "#4E5968", fontWeight: 500, lineHeight: 1.5, wordBreak: "keep-all" }}>{result.transportInfo}</p>
-                    </div>
-                  </div>
-                )}
-
-                <p style={{ fontSize: 13, fontWeight: 600, color: "#8B95A1", marginBottom: 16 }}>추천 활동</p>
-                {result.doThis?.map((item: string, i: number) => (
-                  <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "14px 0", borderBottom: i === result.doThis.length - 1 ? "none" : "1px solid #F2F4F6" }}>
-                    <span style={{ color: "#3182F6", fontSize: 16, fontWeight: 800, flexShrink: 0, marginTop: 2 }}>
-                      {String(i + 1).padStart(2, "0")}
-                    </span>
-                    <span style={{ color: "#333D4B", fontSize: 15, lineHeight: 1.5 }}>{item}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div style={{ borderRadius: 16, padding: "20px 24px", background: "#FFFFFF", marginBottom: 12, boxShadow: "0 2px 8px rgba(0,0,0,0.02)" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                <p style={{ fontSize: 13, fontWeight: 600, color: "#8B95A1", margin: 0 }}>오늘의 대화 주제</p>
-                <button 
-                  onClick={() => {
-                    const topics = [
-                      "만약 우리가 10년 뒤에 같은 장소에 온다면, 서로에게 어떤 모습이길 바래?",
-                      "지금 이 순간, 우리 주변에서 가장 너의 취향인 색깔은 뭐야?",
-                      "우리가 처음 만났던 날, 네 머릿속에 가장 먼저 떠올랐던 단어는?",
-                      "만약 오늘 하루를 영화로 만든다면, 제목은 무엇으로 짓고 싶어?",
-                      "서로의 플레이리스트 중 딱 한 곡만 뺏어올 수 있다면 어떤 노래야?",
-                      "네가 가장 좋아하는 계절의 냄새는 어떤 거야?",
-                      "우리가 함께 가본 곳 중, 가장 '우리답다'고 느껴진 장소는 어디야?",
-                      "지금 네 마음의 온도는 몇 도 정도인 것 같아?",
-                      "최근에 읽은 문장 중에 가장 마음을 울렸던 문장이 있어?",
-                      "만약 우리가 내일 아침에 눈을 떴는데, 서로의 몸이 바뀌어 있다면 가장 먼저 뭘 하고 싶어?"
-                    ];
-                    const randomTopic = topics[Math.floor(Math.random() * topics.length)];
-                    setResult(prev => prev ? { ...prev, talkTopic: randomTopic } : null);
-                    triggerHaptic("light");
-                  }}
-                  style={{ border: "none", background: "none", color: "#3182F6", fontSize: "12px", fontWeight: 600, cursor: "pointer" }}
-                >
-                  새로운 주제 ✨
-                </button>
-              </div>
-              <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-                <div style={{ width: 32, height: 32, borderRadius: "50%", background: "#F2F4F6", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 2 }}>
-                  <span style={{ fontSize: 16 }}>💬</span>
-                </div>
-                <p style={{ color: "#333D4B", fontSize: 15, lineHeight: 1.6, transition: "all 0.3s ease", margin: 0, fontWeight: 500 }}>{result.talkTopic}</p>
-              </div>
-            </div>
-
-            <div style={{ borderRadius: 16, padding: "20px 24px", background: "#E8F3FF", marginBottom: 12 }}>
-              <p style={{ fontSize: 13, fontWeight: 600, color: "#3182F6", marginBottom: 8 }}>더 재밌게 하려면?</p>
-              <p style={{ color: "#1960CA", fontSize: 15, lineHeight: 1.6 }}>✨ {result.randomTwist}</p>
-            </div>
-
-            <div style={{ borderRadius: 16, padding: "20px 24px", background: "#FFFFFF", marginBottom: 12, boxShadow: "0 2px 8px rgba(0,0,0,0.02)", display: "flex", alignItems: "center", gap: 12 }}>
-              <span style={{ fontSize: 20 }}>🫶</span>
-              <p style={{ color: "#4E5968", fontSize: 15, fontWeight: 500, lineHeight: 1.6, margin: 0 }}>{result.perfectFor}</p>
-            </div>
-
-            {/* 다음 데이트 예약 섹션 (추가됨) */}
-            {result.nextDate && (
-              <div className="fade-up" style={{ 
-                borderRadius: 24, padding: "24px", 
-                background: "linear-gradient(135deg, #FFFFFF 0%, #F9FAFB 100%)", 
-                marginBottom: 32, border: "2px solid #E8F3FF",
-                boxShadow: "0 8px 24px rgba(49, 130, 246, 0.08)"
-              }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
-                  <span style={{ fontSize: 22 }}>{result.nextDate.emoji || "📅"}</span>
-                  <span style={{ fontSize: 15, fontWeight: 600, color: "#3182F6" }}>다음 시간에 가볼 만한 곳</span>
-                </div>
-                  <span style={{ fontSize: 14, fontWeight: 700, color: "#3182F6", letterSpacing: "-0.3px" }}>다음 시간에 우리 함께 예약할까요?</span>
-
-                <h3 style={{ fontSize: 20, fontWeight: 800, color: "#191F28", marginBottom: 10 }}>{result.nextDate.place}</h3>
-                <p style={{ fontSize: 14, color: "#4E5968", lineHeight: 1.6, marginBottom: 20 }}>{result.nextDate.reason}</p>
-                <button 
-                  onClick={() => window.open(`https://map.naver.com/v5/search/${encodeURIComponent(result.nextDate?.place || "")}`, "_blank")}
-                  style={{ 
-                    width: "100%", padding: "14px", borderRadius: "14px", border: "none", 
-                    background: "#3182F6", color: "#FFFFFF", fontWeight: 700, fontSize: 15, cursor: "pointer",
-                    boxShadow: "0 4px 12px rgba(49, 130, 246, 0.2)"
-                  }}
-                >
-                  지금 예약 정보 확인하기
-                </button>
-              </div>
-            )}
-
-            {/* AI 할루시네이션 면책 문구 */}
-            <div style={{ textAlign: "center", marginBottom: 24 }}>
-              <p style={{ fontSize: 12, color: "#8B95A1", lineHeight: 1.5 }}>
-                ⚠️ AI가 제안한 특정 상호명(가게, 장소)은 현재 폐업했거나 정보가 다를 수 있습니다.<br />
-                방문 전 반드시 지도 앱에서 실제 상호명이 일치하는지 교차검증해 주세요!
-              </p>
-            </div>
-
-            {/* 투표 버튼 (공유받은 경우) */}
-            <div style={{ display: "flex", gap: 12, marginBottom: 20 }}>
-              <button
-                onClick={() => handleVote("agree")}
-                style={{
-                  flex: 1, padding: "16px", borderRadius: "16px", border: "none",
-                  background: partnerVote === "agree" ? "#3182F6" : "#FFFFFF",
-                  color: partnerVote === "agree" ? "#FFFFFF" : "#3182F6",
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.05)", fontSize: "16px", fontWeight: 700, cursor: "pointer"
-                }}
-              >
-                👍 찬성
-              </button>
-              <button
-                onClick={() => handleVote("disagree")}
-                style={{
-                  flex: 1, padding: "16px", borderRadius: "16px", border: "none",
-                  background: partnerVote === "disagree" ? "#F04452" : "#FFFFFF",
-                  color: partnerVote === "disagree" ? "#FFFFFF" : "#F04452",
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.05)", fontSize: "16px", fontWeight: 700, cursor: "pointer"
-                }}
-              >
-                👎 반대
-              </button>
-            </div>
-
-            {/* 버튼들 */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              <button
-                className="roll-btn"
-                onClick={handleShare}
-                disabled={isSharing}
-                style={{ background: "#F2F4F6", color: "#3182F6", border: "1px solid #E8F3FF" }}
-              >
-                {isSharing ? "공유 중..." : "결과 공유하기"}
-              </button>
-              <div style={{ display: "flex", gap: 12 }}>
-                <button
-                  onClick={reset}
-                  style={{ flex: "0 0 auto", padding: "18px 24px", borderRadius: "16px", border: "none", background: "#E5E8EB", color: "#4E5968", cursor: "pointer", fontSize: 16, fontWeight: 600 }}
-                >
-                  처음으로
-                </button>
-                <button
-                  className="roll-btn"
-                  style={{ flex: 1 }}
-                  onClick={rollTheme}
-                  disabled={loading}
-                >
-                  {loading ? loadingText : "다시 뽑기"}
-                </button>
-              </div>
-            </div>
-
-            {/* 토스 광고 영역 */}
-            <div id="toss-ad-container" style={{ width: "100%", minHeight: "100px", marginTop: "32px", borderRadius: "16px", overflow: "hidden" }}></div>
-          </div>
-        )}
-
-      </div>
-      {/* 축제 모달 */}
-      {showFestivals && (
-        <div style={{ 
-          position: "fixed", top: 0, left: 0, right: 0, bottom: 0, 
-          background: "rgba(0,0,0,0.5)", zIndex: 10000, 
-          display: "flex", alignItems: "flex-end", justifyContent: "center"
-        }} onClick={() => setShowFestivals(false)}>
-          <div 
-            style={{ 
-              width: "100%", maxWidth: 480, background: "#FFFFFF", 
-              borderTopLeftRadius: 24, borderTopRightRadius: 24, 
-              padding: "32px 24px", minHeight: "60vh", maxHeight: "85vh", 
-              overflowY: "auto", animation: "slideUp 0.3s ease-out" 
-            }} 
-            onClick={e => e.stopPropagation()}
-          >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
-              <h3 style={{ fontSize: 20, fontWeight: 700, color: "#191F28", margin: 0 }}>
-                {condition.지역} 다가오는 축제 🎭
-              </h3>
-              <button 
-                onClick={() => setShowFestivals(false)}
-                style={{ background: "none", border: "none", fontSize: 24, color: "#8B95A1", cursor: "pointer" }}
-              >
-                ✕
-              </button>
-            </div>
-            
-            <div style={{ display: "flex", overflowX: "auto", gap: 12, marginBottom: 24, paddingBottom: 8, msOverflowStyle: "none", scrollbarWidth: "none" }} className="hide-scrollbar">
-              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(m => (
-                <button
-                  key={m}
-                  onClick={() => fetchFestivals(m)}
-                  style={{
-                    flex: "0 0 auto", padding: "8px 16px", borderRadius: "12px", border: "none",
-                    background: selectedMonth === m ? "#3182F6" : "#F2F4F6",
-                    color: selectedMonth === m ? "#FFFFFF" : "#4E5968",
-                    fontWeight: 600, fontSize: 14, cursor: "pointer", transition: "all 0.2s"
-                  }}
-                >
-                  {m}월
-                </button>
+              <p style={{ fontSize: 14, fontWeight: 600, color: "#4E5968", marginBottom: 12 }}>예산</p>
+              {TAGS.예산.map(v => (
+                <button key={v} className={`tag-btn ${condition.예산 === v ? "active" : ""}`} style={{ width: "100%", marginBottom: 8 }} onClick={() => setCond("예산", v)}>{v}</button>
               ))}
             </div>
-            
-            {festMessage ? (
-              <div style={{ textAlign: "center", padding: "60px 20px", color: "#8B95A1", lineHeight: 1.6 }}>
-                <div style={{ fontSize: 40, marginBottom: 16 }}>🗺️</div>
-                {festMessage}
+            <div style={{ marginBottom: 40 }}>
+              <p style={{ fontSize: 14, fontWeight: 600, color: "#4E5968", marginBottom: 12 }}>이동 수단</p>
+              <div style={{ display: "flex", gap: 8 }}>
+                {TAGS.이동수단.map(v => (
+                  <button key={v} className={`tag-btn ${condition.이동수단 === v ? "active" : ""}`} style={{ flex: 1 }} onClick={() => setCond("이동수단", v)}>{v}</button>
+                ))}
               </div>
-            ) : festLoading ? (
-              <div style={{ textAlign: "center", padding: "40px 0" }}>
-                <div className="rolling" style={{ fontSize: 40, marginBottom: 16 }}>🔍</div>
-                <p style={{ color: "#8B95A1" }}>데이터를 불러오는 중...</p>
+            </div>
+            <button className="roll-btn" disabled={!condition.지역 || !condition.예산} onClick={rollTheme}>테마 뽑기</button>
+          </div>
+        )}
+
+        {step === "result" && result && (
+          <div className="fade-up">
+            <div style={{ background: "#FFF", borderRadius: 24, overflow: "hidden", boxShadow: "0 4px 16px rgba(0,0,0,0.04)", marginBottom: 20 }}>
+              <div style={{ padding: 32, background: "#F9FAFB" }}>
+                <div style={{ fontSize: 56, marginBottom: 16 }}>{result.emoji}</div>
+                <h2 style={{ fontSize: 26, fontWeight: 700, marginBottom: 10 }}>{result.theme}</h2>
+                <p style={{ color: "#4E5968", lineHeight: 1.6, marginBottom: 16 }}>{result.desc}</p>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  {result.vibe.map(v => <span key={v} style={{ color: "#3182F6", fontWeight: 600 }}>{v}</span>)}
+                </div>
               </div>
-            ) : festivals.length > 0 ? (
-              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                {festivals.map((f, i) => (
-                  <div key={i} style={{ display: "flex", gap: 16, background: "#F9FAFB", padding: "16px", borderRadius: "16px" }}>
-                    {f.firstimage ? (
-                      <img src={f.firstimage} alt={f.title} style={{ width: 80, height: 80, borderRadius: 12, objectFit: "cover" }} />
-                    ) : (
-                      <div style={{ width: 80, height: 80, borderRadius: 12, background: "#E5E8EB", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32 }}>🎪</div>
-                    )}
-                    <div style={{ flex: 1 }}>
-                      {f.eventstartdate && (
-                        <div style={{ fontSize: 13, color: "#3182F6", fontWeight: 600, marginBottom: 4 }}>
-                          {f.eventstartdate.slice(4,6)}.{f.eventstartdate.slice(6,8)} ~ {f.eventenddate?.slice(4,6)}.{f.eventenddate?.slice(6,8)}
-                        </div>
-                      )}
-                      <div style={{ fontSize: 16, fontWeight: 700, color: "#191F28", marginBottom: 4 }}>{f.title}</div>
-                      <div style={{ fontSize: 13, color: "#8B95A1" }}>{f.addr1 || "지역 정보 없음"}</div>
-                    </div>
+              <div style={{ padding: 24 }}>
+                <p style={{ fontSize: 13, fontWeight: 600, color: "#8B95A1", marginBottom: 16 }}>코스 안내</p>
+                {result.doThis.map((item, i) => (
+                  <div key={i} style={{ display: "flex", gap: 12, marginBottom: 16 }}>
+                    <span style={{ color: "#3182F6", fontWeight: 800 }}>{i + 1}</span>
+                    <span style={{ color: "#333D4B" }}>{item}</span>
                   </div>
                 ))}
               </div>
-            ) : (
-              <div style={{ textAlign: "center", padding: "40px 0", color: "#8B95A1" }}>
-                아쉽게도 {selectedMonth}월엔 예정된 축제가 없습니다. 🥲
+            </div>
+            <div style={{ display: "flex", gap: 12 }}>
+              <button className="roll-btn" style={{ background: "#E5E8EB", color: "#4E5968" }} onClick={reset}>처음으로</button>
+              <button className="roll-btn" onClick={rollTheme}>다시 뽑기</button>
+            </div>
+          </div>
+        )}
+
+        {/* 하단 광고 영역 */}
+        <div id="toss-ad-container" style={{ width: "100%", minHeight: "100px", marginTop: "40px", borderRadius: "16px", overflow: "hidden" }}></div>
+      </div>
+
+      {showFestivals && (
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.5)", zIndex: 10000, display: "flex", alignItems: "flex-end" }} onClick={() => setShowFestivals(false)}>
+          <div style={{ width: "100%", background: "#FFF", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, maxHeight: "80vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
+            <h3 style={{ marginBottom: 20 }}>{condition.지역} 축제 🎭</h3>
+            {festivals.map((f, i) => (
+              <div key={i} style={{ display: "flex", gap: 16, marginBottom: 16, background: "#F9FAFB", padding: 12, borderRadius: 12 }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 700 }}>{f.title}</div>
+                  <div style={{ fontSize: 13, color: "#8B95A1" }}>{f.addr1}</div>
+                </div>
               </div>
-            )}
+            ))}
+            <button className="roll-btn" onClick={() => setShowFestivals(false)}>닫기</button>
           </div>
         </div>
       )}
-      
-      <style jsx global>{`
-        .hide-scrollbar::-webkit-scrollbar { display: none; }
-        @keyframes slideUp {
-          from { transform: translateY(100%); }
-          to { transform: translateY(0); }
-        }
-      `}</style>
     </div>
   );
 }
