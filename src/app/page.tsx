@@ -327,18 +327,85 @@ export default function DateThemeApp() {
       </div>
 
       {showFestivals && (
-        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.5)", zIndex: 10000, display: "flex", alignItems: "flex-end" }} onClick={() => setShowFestivals(false)}>
-          <div style={{ width: "100%", background: "#FFF", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, maxHeight: "80vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
-            <h3 style={{ marginBottom: 20 }}>{condition.지역} 축제 🎭</h3>
-            {festivals.map((f, i) => (
-              <div key={i} style={{ display: "flex", gap: 16, marginBottom: 16, background: "#F9FAFB", padding: 12, borderRadius: 12 }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 700 }}>{f.title}</div>
-                  <div style={{ fontSize: 13, color: "#8B95A1" }}>{f.addr1}</div>
-                </div>
+        <div style={{ 
+          position: "fixed", top: 0, left: 0, right: 0, bottom: 0, 
+          background: "rgba(0,0,0,0.5)", zIndex: 10000, 
+          display: "flex", alignItems: "flex-end", justifyContent: "center"
+        }} onClick={() => setShowFestivals(false)}>
+          <div 
+            style={{ 
+              width: "100%", maxWidth: 480, background: "#FFFFFF", 
+              borderTopLeftRadius: 24, borderTopRightRadius: 24, 
+              padding: "32px 24px", minHeight: "60vh", maxHeight: "85vh", 
+              overflowY: "auto", animation: "slideUp 0.3s ease-out" 
+            }} 
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+              <h3 style={{ fontSize: 20, fontWeight: 700, color: "#191F28", margin: 0 }}>
+                {condition.지역} 다가오는 축제 🎭
+              </h3>
+              <button 
+                onClick={() => setShowFestivals(false)}
+                style={{ background: "none", border: "none", fontSize: 24, color: "#8B95A1", cursor: "pointer" }}
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div style={{ display: "flex", overflowX: "auto", gap: 12, marginBottom: 24, paddingBottom: 8, msOverflowStyle: "none", scrollbarWidth: "none" }} className="hide-scrollbar">
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(m => (
+                <button
+                  key={m}
+                  onClick={() => fetchFestivals(m)}
+                  style={{
+                    flex: "0 0 auto", padding: "8px 16px", borderRadius: "12px", border: "none",
+                    background: selectedMonth === m ? "#3182F6" : "#F2F4F6",
+                    color: selectedMonth === m ? "#FFFFFF" : "#4E5968",
+                    fontWeight: 600, fontSize: 14, cursor: "pointer", transition: "all 0.2s"
+                  }}
+                >
+                  {m}월
+                </button>
+              ))}
+            </div>
+            
+            {festMessage ? (
+              <div style={{ textAlign: "center", padding: "60px 20px", color: "#8B95A1", lineHeight: 1.6 }}>
+                <div style={{ fontSize: 40, marginBottom: 16 }}>🗺️</div>
+                {festMessage}
               </div>
-            ))}
-            <button className="roll-btn" onClick={() => setShowFestivals(false)}>닫기</button>
+            ) : festLoading ? (
+              <div style={{ textAlign: "center", padding: "40px 0" }}>
+                <div className="rolling" style={{ fontSize: 40, marginBottom: 16 }}>🔍</div>
+                <p style={{ color: "#8B95A1" }}>데이터를 불러오는 중...</p>
+              </div>
+            ) : festivals.length > 0 ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                {festivals.map((f, i) => (
+                  <div key={i} style={{ display: "flex", gap: 16, background: "#F9FAFB", padding: "16px", borderRadius: "16px" }}>
+                    {f.firstimage ? (
+                      <img src={f.firstimage} alt={f.title} style={{ width: 80, height: 80, borderRadius: 12, objectFit: "cover" }} />
+                    ) : (
+                      <div style={{ width: 80, height: 80, borderRadius: 12, background: "#E5E8EB", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32 }}>🎪</div>
+                    )}
+                    <div style={{ flex: 1 }}>
+                      {f.eventstartdate && (
+                        <div style={{ fontSize: 13, color: "#3182F6", fontWeight: 600, marginBottom: 4 }}>
+                          {f.eventstartdate.slice(4,6)}.{f.eventstartdate.slice(6,8)} ~ {f.eventenddate?.slice(4,6)}.{f.eventenddate?.slice(6,8)}
+                        </div>
+                      )}
+                      <div style={{ fontSize: 16, fontWeight: 700, color: "#191F28", marginBottom: 4 }}>{f.title}</div>
+                      <div style={{ fontSize: 13, color: "#8B95A1" }}>{f.addr1 || "지역 정보 없음"}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{ textAlign: "center", padding: "40px 0", color: "#8B95A1" }}>
+                아쉽게도 {selectedMonth}월엔 예정된 축제가 없습니다. 🥲
+              </div>
+            )}
           </div>
         </div>
       )}
