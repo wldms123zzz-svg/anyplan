@@ -2,7 +2,7 @@ import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from "@google/ge
 import { NextRequest, NextResponse } from "next/server";
 
 export const dynamic = 'force-dynamic';
-// Node.js 런타임 사용 (Gemini SDK 안정성 확보)
+export const runtime = 'edge'; // Edge 런타임으로 30초까지 허용
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
@@ -97,13 +97,7 @@ export async function POST(req: NextRequest) {
       (JSON 형식으로만 응답: { "theme": "...", "desc": "...", "vibe": "...", "emoji": "...", "doThis": ["...", "...", "..."], "transportInfo": "...", "talkTopic": "...", "randomTwist": "...", "perfectFor": "..." })
     `;
 
-    // Gemini 호출에 7초 타임아웃 적용
-    const geminiPromise = model.generateContent(prompt);
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error("Gemini Timeout")), 7000)
-    );
-
-    const result = await Promise.race([geminiPromise, timeoutPromise]) as any;
+    const result = await model.generateContent(prompt);
     const response = await result.response;
     
     // 후보가 아예 없는 경우 (안전 필터 등에 의해 차단됨)
