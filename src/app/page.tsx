@@ -306,6 +306,12 @@ export default function DateThemeApp() {
                 </div>
               </div>
               <div style={{ padding: 24 }}>
+                {result.transportInfo && (
+                  <div style={{ background: "#F2F4F6", padding: "16px 20px", borderRadius: "16px", marginBottom: 24, display: "flex", alignItems: "flex-start", gap: 12, border: "1px solid #E5E8EB" }}>
+                    <span style={{ fontSize: 20 }}>{condition.이동수단?.includes("자차") ? "🚗" : "🚌"}</span>
+                    <p style={{ fontSize: 14, color: "#4E5968", fontWeight: 500, margin: 0, lineHeight: 1.5 }}>{result.transportInfo}</p>
+                  </div>
+                )}
                 <p style={{ fontSize: 13, fontWeight: 600, color: "#8B95A1", marginBottom: 16 }}>코스 안내</p>
                 {result.doThis.map((item, i) => (
                   <div key={i} style={{ display: "flex", gap: 12, marginBottom: 16 }}>
