@@ -799,6 +799,33 @@ export default function DateThemeApp() {
               <p style={{ color: "#4E5968", fontSize: 15, lineHeight: 1.6 }}>🫶 {result.perfectFor}</p>
             </div>
 
+            {/* 다음 데이트 예약 섹션 (추가됨) */}
+            {result.nextDate && (
+              <div className="fade-up" style={{ 
+                borderRadius: 24, padding: "24px", 
+                background: "linear-gradient(135deg, #FFFFFF 0%, #F9FAFB 100%)", 
+                marginBottom: 32, border: "2px solid #E8F3FF",
+                boxShadow: "0 8px 24px rgba(49, 130, 246, 0.08)"
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+                  <span style={{ fontSize: 24 }}>{result.nextDate.emoji || "📅"}</span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: "#3182F6", letterSpacing: "-0.3px" }}>다음 데이트를 위해 예약할까요?</span>
+                </div>
+                <h3 style={{ fontSize: 20, fontWeight: 800, color: "#191F28", marginBottom: 10 }}>{result.nextDate.place}</h3>
+                <p style={{ fontSize: 14, color: "#4E5968", lineHeight: 1.6, marginBottom: 20 }}>{result.nextDate.reason}</p>
+                <button 
+                  onClick={() => window.open(`https://map.naver.com/v5/search/${encodeURIComponent(result.nextDate?.place || "")}`, "_blank")}
+                  style={{ 
+                    width: "100%", padding: "14px", borderRadius: "14px", border: "none", 
+                    background: "#3182F6", color: "#FFFFFF", fontWeight: 700, fontSize: 15, cursor: "pointer",
+                    boxShadow: "0 4px 12px rgba(49, 130, 246, 0.2)"
+                  }}
+                >
+                  지금 예약 정보 확인하기
+                </button>
+              </div>
+            )}
+
             {/* AI 할루시네이션 면책 문구 */}
             <div style={{ textAlign: "center", marginBottom: 24 }}>
               <p style={{ fontSize: 12, color: "#8B95A1", lineHeight: 1.5 }}>

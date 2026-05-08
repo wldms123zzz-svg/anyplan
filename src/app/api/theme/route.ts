@@ -18,10 +18,9 @@ export async function POST(req: Request) {
     };
     const areaCode = AREA_CODES[condition.지역] || "";
 
-    // 실시간 지역 데이터 페칭 (안정적인 직접 fetch 사용)
     if (tourKey && areaCode) {
       try {
-        const url = `https://apis.data.go.kr/B551011/KorService2/areaBasedList2?serviceKey=${tourKey}&MobileOS=ETC&MobileApp=TodayDate&_type=json&areaCode=${areaCode}&numOfRows=15&arrange=Q`;
+        const url = `https://apis.data.go.kr/B551011/KorService2/areaBasedList2?serviceKey=${tourKey}&MobileOS=ETC&MobileApp=TodayDate&_type=json&areaCode=${areaCode}&numOfRows=20&arrange=Q`;
         const res = await fetch(url, { next: { revalidate: 3600 } });
         const data = await res.json();
         const items = data?.response?.body?.items?.item;
@@ -30,35 +29,40 @@ export async function POST(req: Request) {
             .map((i: any) => `${i.title}(${i.addr1 || ""})`)
             .join(", ");
         }
-      } catch (e) {
-        console.warn("Tour API Error, but continuing to AI...");
-      }
+      } catch (e) { }
     }
 
-    // Gemini API 직접 호출 (SDK 충돌 방지 및 Edge 런타임 최적화)
     const prompt = `
-      당신은 대한민국 최고의 '지역 전문 데이트 플래너'입니다.
+      당신은 대한민국 최고의 '힙스터 데이트 큐레이터'입니다. 
+      평범한 공간도 힙하게 즐기는 법을 알고 있으며, 예약이 어려운 핫플레이스 정보에도 밝습니다.
 
       [핵심 요청]
-      사용자가 선택한 지역(${condition.지역})의 특색을 200% 살린 시적이고 풍성한 데이트 테마를 제안하세요.
-      반드시 제공된 '현지 실시간 데이터'를 활용하여 실제 상호명과 주소가 포함된 3단계 동선을 짜야 합니다.
+      1. 오늘의 데이트: 사용자가 선택한 지역(${condition.지역})과 취향을 반영한 아주 힙하고 시적인 코스.
+      2. 다음 데이트 예약: 해당 지역에서 가장 힙하지만 '예약'이 필수인 장소(맛집, 공방, 전시 등)를 별도로 추천하세요.
 
       [사용자 정보]
       지역: ${condition.지역}, 무드: ${taste.무드}, 활동: ${taste.활동}, 예산: ${condition.예산}
-      상태: 본인(${condition.상태}), 상대방(${condition.동행인상태})
+      에너지: 본인(${condition.상태}), 상대방(${condition.동행인상태})
 
       [현지 실시간 데이터]
       ${realData}
 
       [응답 형식 (JSON)]
-      - theme: 아주 시적이고 감성적인 제목
-      - vibe: 3개 이상의 해시태그
-      - desc: 3문장 이상의 풍부한 설명
-      - doThis: 실제 지명이 포함된 3단계 상세 코스
-      - transportInfo: 구체적인 교통/주차 팁
-      - talkTopic: 대화 주제
-      - randomTwist: "더 재밌게 하려면?" 섹션용 깜짝 미션
-      - perfectFor: 타겟 커플 묘사
+      {
+        "theme": "시적인 오늘의 테마 제목",
+        "vibe": ["#해시태그1", "#해시태그2", "#해시태그3"],
+        "desc": "3문장 이상의 감성적인 설명",
+        "doThis": ["구체적인 1단계", "구체적인 2단계", "구체적인 3단계"],
+        "transportInfo": "구체적인 버스/지하철/주차 팁",
+        "talkTopic": "오늘의 대화 주제",
+        "randomTwist": "더 재밌게 하려면? (힙한 미션)",
+        "perfectFor": "이 코스가 딱인 커플 묘사",
+        "nextDate": {
+          "place": "예약이 필요한 힙한 장소명",
+          "reason": "왜 다음 데이트로 추천하는지 (예약 팁 포함)",
+          "emoji": "📅"
+        }
+      }
 
       JSON 형식으로만 답변하세요.
     `;
@@ -82,33 +86,21 @@ export async function POST(req: Request) {
   } catch (error: any) {
     console.error("Critical Error:", error);
     
-    // 지역 맞춤형 폴백 시스템
-    const isJeju = req.url.includes("제주") || JSON.stringify(req.body).includes("제주");
-    
-    if (isJeju) {
-      return NextResponse.json({
-        theme: "제주 에메랄드빛 해안 산책",
-        emoji: "🌊",
-        desc: "제주의 푸른 바다를 곁에 두고 걷는 낭만적인 시간입니다.",
-        vibe: "#제주감성 #바다멍 #힐링산책",
-        doThis: ["협재 해변 모래사장 걷기", "근처 오션뷰 카페에서 차 마시기", "노을 배경으로 인생샷 찍기"],
-        transportInfo: "제주 버스 202번 혹은 렌터카 이용을 권장합니다.",
-        talkTopic: "우리 제주도에서 살게 된다면 어떨까?",
-        randomTwist: "바닷가에서 예쁜 조개껍데기 하나씩 찾아주기!",
-        perfectFor: "바다를 사랑하는 모든 커플"
-      });
-    }
-
     return NextResponse.json({
-      theme: "도심 속 낭만 산책",
-      emoji: "🏙️",
-      desc: "지친 일상을 잠시 잊고 가까운 곳에서 즐기는 여유로운 데이트입니다.",
-      vibe: "#도심힐링 #함께걷기 #소소한행복",
-      doThis: ["근처 공원 산책하기", "분위기 좋은 골목 맛집 탐방", "야경이 예쁜 곳에서 대화하기"],
-      transportInfo: "가까운 지하철역이나 대중교통 이용이 가장 편리합니다.",
-      talkTopic: "오늘 우리 데이트 점수를 매긴다면 몇 점?",
-      randomTwist: "서로의 장점 하나씩 말해준 뒤 하이파이브!",
-      perfectFor: "도심 속 쉼표가 필요한 커플"
+      theme: "도심 속 숨겨진 아지트 탐험",
+      emoji: "🕵️",
+      vibe: ["#힙플레이스", "#나만아는곳", "#감성폭발"],
+      desc: "평범한 골목 속에 숨어있는 보석 같은 공간을 찾아 떠나는 여행입니다. 익숙한 풍경도 오늘만큼은 특별하게 보일 거예요.",
+      doThis: ["빈티지한 간판이 예쁜 가게 앞에서 서로 사진 찍어주기", "오래된 노포에서만 느낄 수 있는 깊은 맛 경험하기", "가장 힙한 독립 서점에서 서로에게 어울리는 책 선물하기"],
+      transportInfo: "골목길이 좁으니 대중교통 이용 후 도보 이동을 추천합니다.",
+      talkTopic: "우리가 처음 '힙하다'고 느꼈던 순간은 언제야?",
+      randomTwist: "필름 카메라 앱으로 서로의 가장 자연스러운 모습 담아보기",
+      perfectFor: "남들과 다른 우리만의 감성을 소중히 여기는 커플",
+      nextDate: {
+        place: "예약제 프라이빗 와인바",
+        reason: "여기는 한 달 전 예약이 필수지만, 그만큼 가치가 있는 힙한 곳이에요. 다음 데이트를 위해 지금 확인해보세요!",
+        emoji: "🍷"
+      }
     });
   }
 }
