@@ -259,7 +259,17 @@ export default function DateThemeApp() {
           <div className="fade-up">
             <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 24 }}>장소 및 예산</h2>
             <div style={{ marginBottom: 32 }}>
-              <p style={{ fontSize: 14, fontWeight: 600, color: "#4E5968", marginBottom: 12 }}>지역</p>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                <p style={{ fontSize: 14, fontWeight: 600, color: "#4E5968", margin: 0 }}>지역</p>
+                {condition.지역 && condition.지역 !== "전국" && (
+                  <button 
+                    onClick={() => fetchFestivals()}
+                    style={{ fontSize: 12, padding: "6px 12px", borderRadius: "8px", border: "none", background: "#E8F3FF", color: "#3182F6", fontWeight: 600, cursor: "pointer" }}
+                  >
+                    🎭 {condition.지역} 축제 보기
+                  </button>
+                )}
+              </div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                 {TAGS.지역.map(v => (
                   <button key={v} className={`tag-btn ${condition.지역 === v ? "active" : ""}`} onClick={() => setCond("지역", v)}>{v}</button>
