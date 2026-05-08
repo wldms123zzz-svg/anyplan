@@ -60,13 +60,16 @@ export async function POST(req: NextRequest) {
       const extractItems = (data: any) => {
         const items = data?.response?.body?.items?.item;
         if (!items) return "";
-        return (Array.isArray(items) ? items : [items]).map((i:any) => i.title).join(", ");
+        return (Array.isArray(items) ? items : [items])
+          .map((i:any) => `${i.title}(${i.addr1 || ""})`)
+          .join(", ");
       };
 
       realData = `
-        현지 인기 관광지: ${extractItems(attractions)}
-        현지 추천 맛집: ${extractItems(restaurants)}
-        현재 진행중인 축제: ${extractItems(festivals)}
+        [필독! 현지 실시간 장소 데이터]
+        관광명소: ${extractItems(attractions)}
+        인기 맛집: ${extractItems(restaurants)}
+        진행중 축제: ${extractItems(festivals)}
       `;
     }
 
@@ -75,24 +78,21 @@ export async function POST(req: NextRequest) {
     const timestamp = new Date().toISOString();
     
     const prompt = `
-      사용자 정보: ${JSON.stringify(profile)}
-      취향: ${JSON.stringify(taste)}
-      현재 상황: ${JSON.stringify(condition)}
-      요청 시간: ${timestamp}
-      현지 실시간 데이터: ${realData}
+      당신은 대한민국 최고의 로컬 데이트 플래너입니다. 아래 정보를 바탕으로 '전문가급' 데이트 테마를 제안해주세요.
 
-      위 정보를 바탕으로 아주 창의적이고, 시적이며, 풍부한 내용의 데이트 테마를 제안해주세요. 
-      사용자의 설문 결과(무드: ${taste.무드}, 활동: ${taste.활동}, 예산: ${condition.예산})를 최우선으로 반영해야 합니다. 
-      예를 들어 '공짜'면 무료 코스 위주로, '먹기'면 맛집 탐방 위주로 짜야 합니다.
+      [사용자 정보]
+      지역: ${condition.지역}, 무드: ${taste.무드}, 활동: ${taste.활동}, 예산: ${condition.예산}
+      사용자 상태: 본인(${condition.상태}), 상대방(${condition.동행인상태})
 
-      [응답 가이드라인]
-      - theme: 스크린샷처럼 감성적이고 시적인 긴 제목 (예: "고분 언덕 위 시네마")
-      - vibe: 3개 이상의 감각적인 해시태그 (예: "#초현실적 #비용0원 #사극분위기")
-      - desc: 아주 감성적이고 시적인 긴 설명 (2~3문장)
-      - doThis: 3가지의 아주 구체적이고 매력적인 활동 단계. 상호명이나 장소를 포함하여 자세히 설명하세요.
-      - talkTopic: 두 사람의 관계를 깊게 만들어줄 구체적인 질문
-      - randomTwist: "더 재밌게 하려면?" 섹션에 들어갈 깜짝 미션이나 팁
-      - perfectFor: 이 코스가 어떤 커플(나이대, 상태)에게 딱인지 설명 (예: "체력 차이가 나지만 로맨틱한 사진을 건지고 싶은 20대 커플")
+      [현지 실시간 데이터 (반드시 활용할 것)]
+      ${realData}
+
+      [필수 지시사항]
+      1. '현지 실시간 데이터'에 제공된 실제 상호명과 주소를 바탕으로 3단계 상세 동선을 짜주세요. 
+      2. transportInfo 섹션에는 스크린샷처럼 구체적인 버스 번호, 지하철역, 혹은 주차 팁을 적어주세요.
+      3. 제목(theme)과 설명(desc)은 아주 시적이고 감성적으로 작성하세요. (예: "제주 서쪽 해안, 예술과 향기의 비밀 탐험")
+      4. 사용자가 '먹기'를 골랐으면 맛집을, '걷기'를 골랐으면 산책로나 둘레길을 메인으로 잡으세요.
+      5. '공짜'면 무료 입장 가능 장소를, '돈 쓸래요'면 럭셔리한 장소를 포함하세요.
 
       (JSON 형식으로만 응답: { "theme": "...", "desc": "...", "vibe": "...", "emoji": "...", "doThis": ["...", "...", "..."], "transportInfo": "...", "talkTopic": "...", "randomTwist": "...", "perfectFor": "..." })
     `;
