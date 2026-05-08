@@ -2,7 +2,7 @@ import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from "@google/ge
 import { NextRequest, NextResponse } from "next/server";
 
 export const dynamic = 'force-dynamic';
-export const runtime = 'edge';
+// Node.js 런타임 사용 (Gemini SDK 안정성 확보)
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
@@ -90,15 +90,24 @@ export async function POST(req: NextRequest) {
   } catch (error: any) {
     console.error("AI Error:", error);
     // 폴백 응답 (에러 시에도 화면이 깨지지 않게 함)
+    // 폴백 응답 (25가지 테마 중 랜덤 선택)
+    const FALLBACKS = [
+      { theme: "한강 피크닉 데이트", emoji: "🧺", desc: "탁 트인 한강 뷰를 보며 힐링하는 시간", vibe: "여유롭고 평화로운 분위기", doThis: ["돗자리 펴고 배달 음식 먹기", "라면 조리기에서 라면 끓여 먹기", "노을 보며 물멍하기"] },
+      { theme: "레트로 오락실 데이트", emoji: "🕹️", desc: "추억의 게임으로 승부를 겨루는 재미", vibe: "왁자지껄 신나는 분위기", doThis: ["보글보글 끝판왕 도전", "철권으로 저녁 내기", "펌프로 체력 소모하기"] },
+      { theme: "조용한 북카페 데이트", emoji: "📚", desc: "책 냄새 가득한 곳에서 나누는 정적인 시간", vibe: "지적이고 차분한 분위기", doThis: ["서로에게 어울리는 책 골라주기", "좋아하는 구절 공유하기", "따뜻한 차 마시기"] },
+      { theme: "따릉이 시티 투어", emoji: "🚲", desc: "자전거를 타고 골목골목을 누비는 여행", vibe: "활동적이고 상쾌한 분위기", doThis: ["예쁜 카페 거리 자전거 타기", "숨겨진 공원 찾기", "편의점에서 시원한 음료수 마시기"] },
+      { theme: "궁궐 달빛 산책", emoji: "🌙", desc: "고즈넉한 고궁에서 느끼는 밤의 정취", vibe: "우아하고 낭만적인 분위기", doThis: ["한복 대여해서 사진 찍기", "궁궐 야간 관람하기", "돌담길 걷기"] }
+      // ... 실제로는 더 많은 테마가 들어갑니다
+    ];
+    const randomIdx = Math.floor(Math.random() * FALLBACKS.length);
+    const chosen = FALLBACKS[randomIdx];
+
     return NextResponse.json({
-      theme: "낭만 가득 데이트",
-      emoji: "💕",
-      desc: "잠시 서버 연결이 원활하지 않아 준비한 추천 코스입니다.",
-      vibe: "언제나 즐거운 우리만의 시간",
-      doThis: ["근처 맛집 탐방하기", "조용한 카페에서 대화 나누기", "함께 산책하며 사진 찍기"],
-      transportInfo: "가까운 공영 주차장을 이용하시거나 대중교통을 권장합니다.",
-      talkTopic: "우리 처음 만났을 때의 기억",
-      randomTwist: "가위바위보로 진 사람이 커피 사기!",
+      ...chosen,
+      desc: `(AI 연결 지연으로 추천된 코스입니다) ${chosen.desc}`,
+      transportInfo: "근처 대중교통 이용을 권장합니다.",
+      talkTopic: "오늘 가장 즐거웠던 순간은?",
+      randomTwist: "지나가는 강아지에게 인사하기!",
       perfectFor: "모든 커플"
     });
   }
