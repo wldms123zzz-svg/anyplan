@@ -27,29 +27,47 @@ export async function POST(req: NextRequest) {
       };
       const areaCode = AREA_CODES[condition.지역] || "";
       
-      const fetchTourData = async (url: string) => {
+      const fetchTourData = async (contentType: string) => {
         try {
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 1500); // 1.5초 타임아웃
-          const res = await fetch(url, { 
-            next: { revalidate: 0 },
-            signal: controller.signal 
-          });
+          const timeoutId = setTimeout(() => controller.abort(), 2000); // 2초 타임아웃
+          const url = `https://apis.data.go.kr/B551011/KorService2/areaBasedList2?serviceKey=${tourKey}&MobileOS=ETC&MobileApp=TodayDate&_type=json&areaCode=${areaCode}&contentTypeId=${contentType}&numOfRows=10&arrange=Q`;
+          const res = await fetch(url, { next: { revalidate: 3600 }, signal: controller.signal });
           clearTimeout(timeoutId);
           if (!res.ok) return null;
           return await res.json();
         } catch (e) { return null; }
       };
 
-      const [festData, histData] = await Promise.all([
-        fetchTourData(`https://apis.data.go.kr/B551011/KorService2/searchFestival2?serviceKey=${tourKey}&MobileOS=ETC&MobileApp=TodayDate&_type=json&eventStartDate=20240101&numOfRows=5&areaCode=${areaCode}`),
-        fetchTourData(`https://apis.data.go.kr/B551011/KorService2/areaBasedList2?serviceKey=${tourKey}&MobileOS=ETC&MobileApp=TodayDate&_type=json&contentTypeId=12&numOfRows=5&areaCode=${areaCode}`)
+      const fetchFestivals = async () => {
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 2000);
+          const url = `https://apis.data.go.kr/B551011/KorService2/searchFestival2?serviceKey=${tourKey}&MobileOS=ETC&MobileApp=TodayDate&_type=json&areaCode=${areaCode}&eventStartDate=20240101&numOfRows=5`;
+          const res = await fetch(url, { next: { revalidate: 3600 }, signal: controller.signal });
+          clearTimeout(timeoutId);
+          if (!res.ok) return null;
+          return await res.json();
+        } catch (e) { return null; }
+      };
+
+      const [attractions, restaurants, festivals] = await Promise.all([
+        fetchTourData("12"), // 관광지
+        fetchTourData("39"), // 음식점
+        fetchFestivals()     // 축제
       ]);
       
-      if (festData?.response?.body?.items?.item) {
-        const items = festData.response.body.items.item;
-        realData += `\n추천 장소/행사: ${Array.isArray(items) ? items.map((f:any)=>f.title).join(", ") : items.title}`;
-      }
+      const extractItems = (data: any) => {
+        const items = data?.response?.body?.items?.item;
+        if (!items) return "";
+        return (Array.isArray(items) ? items : [items]).map((i:any) => i.title).join(", ");
+      };
+
+      realData = `
+        현지 인기 관광지: ${extractItems(attractions)}
+        현지 추천 맛집: ${extractItems(restaurants)}
+        현재 진행중인 축제: ${extractItems(festivals)}
+      `;
     }
 
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash", safetySettings });
@@ -61,10 +79,11 @@ export async function POST(req: NextRequest) {
       취향: ${JSON.stringify(taste)}
       현재 상황: ${JSON.stringify(condition)}
       요청 시간: ${timestamp}
-      추가 데이터: ${realData}
+      현지 실시간 데이터: ${realData}
 
       위 정보를 바탕으로 창의적이고 구체적인 데이트 테마를 하나 제안해주세요.
-      매번 다른 결과를 내놓아야 하며, 아주 구체적인 장소와 동선을 포함해주세요.
+      두 사람 모두 '녹초' 상태가 아니라면, 제공된 '현지 실시간 데이터'에 있는 실제 장소와 맛집 이름을 반드시 활용하여 3단계(Step-by-Step) 상세 동선을 짜주세요.
+      실제 지명과 상호명을 언급하여 신뢰도를 높여주세요.
       (JSON 형식으로만 응답: { "theme": "...", "desc": "...", "vibe": "...", "emoji": "...", "doThis": ["...", "...", "..."], "transportInfo": "...", "talkTopic": "...", "randomTwist": "...", "perfectFor": "..." })
     `;
 
