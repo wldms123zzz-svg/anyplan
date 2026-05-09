@@ -195,7 +195,7 @@ export default function DateThemeApp() {
       setStep("result");
     } catch (err: any) { 
       console.error("Critical Error:", err);
-      let msg = err.message || "알 수 없는 오류";
+      let msg = err.name === "TypeError" ? "네트워크 연결 오류 (CORS/URL)" : (err.message || "알 수 없는 오류");
       // 특정 브라우저 에러 메시지 한글화 및 우회 안내
       if (msg.includes("expected pattern") || msg.includes("Failed to fetch")) {
         msg = "연결이 원활하지 않습니다. 잠시 후 '테마 뽑기'를 다시 눌러주세요.";
