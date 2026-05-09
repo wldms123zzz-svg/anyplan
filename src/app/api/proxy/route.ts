@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server";
 
-export const runtime = "edge";
-
 const AREA_CODES: Record<string, string> = {
   "서울": "1", "인천": "2", "대전": "3", "대구": "4", "광주": "5", "부산": "6", "울산": "7", "세종": "8",
   "경기": "31", "강원": "32", "충북": "33", "충남": "34", "경북": "35", "경남": "36", "전북": "37", "전남": "38", "제주": "39"
@@ -20,11 +18,21 @@ export async function GET(request: Request) {
   const areaCode = AREA_CODES[region] || "";
 
   try {
-    const url = `https://apis.data.go.kr/B551011/KorService2/areaBasedList2?serviceKey=${tourKey}&MobileOS=ETC&MobileApp=anyplan&_type=json&areaCode=${areaCode}&numOfRows=50&contentTypeId=15&arrange=Q`;
-    const res = await fetch(url);
-    const d = await res.json();
-    const items = d?.response?.body?.items?.item || [];
-    return NextResponse.json({ festivals: Array.isArray(items) ? items : [items] }, { headers: corsHeaders });
+    const tourUrl = `https://apis.data.go.kr/B551011/KorService2/areaBasedList2?serviceKey=${tourKey}&MobileOS=ETC&MobileApp=anyplan&_type=json&areaCode=${areaCode}&numOfRows=30&contentTypeId=15&arrange=Q`;
+    const durunubiUrl = `https://apis.data.go.kr/B551011/DurunubiService/courseList?serviceKey=${tourKey}&MobileOS=ETC&MobileApp=anyplan&_type=json&numOfRows=20&pageNo=1`;
+
+    const [tourRes, duruRes] = await Promise.all([
+      fetch(tourUrl).then(res => res.json()),
+      fetch(durunubiUrl).then(res => res.json())
+    ]);
+
+    const festivals = tourRes?.response?.body?.items?.item || [];
+    const trails = duruRes?.response?.body?.items?.item || [];
+
+    return NextResponse.json({ 
+      festivals: Array.isArray(festivals) ? festivals : (festivals ? [festivals] : []),
+      trails: Array.isArray(trails) ? trails : (trails ? [trails] : [])
+    }, { headers: corsHeaders });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500, headers: corsHeaders });
   }
@@ -32,32 +40,33 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   const body = await request.json();
-  const { taste, condition } = body;
+  const { taste, condition, trails } = body;
   const geminiKey = process.env.GEMINI_API_KEY;
 
   try {
     const prompt = `
-      당신은 MZ 트렌드를 이끄는 힙한 데이트 디렉터입니다. 
-      지역(${condition.지역}), 취향(${taste.무드}, ${taste.활동}), 예산(${condition.예산}) 기반.
-      인스타 핫플, 힙한 감성 공간 위주의 3단계 코스를 짜주세요.
+      당신은 MZ 힙한 데이트 디렉터입니다.
+      지역(${condition.지역}), 취향(${taste.무드}, ${taste.활동}), 이동수단(${condition.이동수단}) 기반.
+      산책길 참고: ${JSON.stringify(trails?.slice(0, 5))}
       
-      주의사항:
-      1. 텍스트에 '**'와 같은 강조 표시(마크다운 볼드체)를 절대 사용하지 마세요.
-      2. '성수동' 등 특정 지역명을 예시로 언급하지 마세요.
-      3. 커플, 연인 단어 사용 금지.
+      지침:
+      1. 이동수단이 '뚜벅이'면 대중교통(지하철역, 출구 번호 등) 위주로 안내하세요.
+      2. 이동수단이 '자차'면 주차장(무료/유료 주차장 명칭 및 팁) 정보를 필수 포함하세요.
+      3. 두루누비 산책길 중 하나를 골라 코스에 힙하게 녹여내세요.
+      4. 인스타 핫플 감성 유지. 강조 표시(**) 금지. 성수동 언급 금지.
       
-      반드시 아래 JSON 형식으로만 응답하세요:
+      JSON 응답:
       {
         "theme": "코스 제목",
         "emoji": "이모지",
-        "vibe": ["#해시태그1", "#해시태그2"],
+        "vibe": ["#해시태그"],
         "desc": "한 줄 감성",
         "doThis": ["활동1", "활동2", "활동3"],
-        "transportInfo": "이동 팁",
+        "transportInfo": "대중교통 상세(출구번호 등) 혹은 주차장 상세 정보",
         "talkTopic": "대화 주제",
         "randomTwist": "미션",
         "perfectFor": "추천 대상",
-        "nextDate": { "place": "다음 추천", "reason": "이유", "emoji": "이모지" }
+        "nextDate": { "place": "다음 핫플", "reason": "이유", "emoji": "이모지" }
       }
     `;
     
@@ -68,18 +77,14 @@ export async function POST(request: Request) {
     });
 
     const data = await res.json();
-    if (!res.ok) return NextResponse.json({ error: data.error?.message || "AI Error" }, { status: res.status, headers: corsHeaders });
-
     let text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
     const jsonMatch = text.match(/\{[\s\S]*\}/);
-    let finalJson = jsonMatch ? jsonMatch[0] : text;
+    let cleanText = jsonMatch ? jsonMatch[0] : text;
+    cleanText = cleanText.replace(/\*\*/g, "");
     
-    // 최종 텍스트에서 ** 제거 (안전장치)
-    finalJson = finalJson.replace(/\*\*/g, "");
-    
-    return NextResponse.json(JSON.parse(finalJson), { headers: corsHeaders });
+    return NextResponse.json(JSON.parse(cleanText), { headers: corsHeaders });
   } catch (e: any) {
-    return NextResponse.json({ error: "새로운 감성을 충전 중입니다. 다시 시도해주세요!" }, { status: 500, headers: corsHeaders });
+    return NextResponse.json({ error: "연결 오류가 발생했습니다." }, { status: 500, headers: corsHeaders });
   }
 }
 

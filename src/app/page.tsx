@@ -140,20 +140,28 @@ export default function DateThemeApp() {
     try {
       const region = condition.지역 === "전국" ? "" : condition.지역;
       const festUrl = `${BASE_API_URL}/api/proxy?region=${region}&month=${targetMonth}&t=${Date.now()}`;
-      console.log("Fetching festivals from:", festUrl);
+      const festRes = await fetch(festUrl);
+      const data = await festRes.json();
       
-      const res = await fetch(festUrl);
-      const data = await res.json();
+      if (data.error || data.message) {
+        throw new Error(data.error || data.message);
+      }
       
-      if (data.error || data.message) { 
-        console.error("Festival API Error:", data.error || data.message);
-        setFestMessage(data.error || data.message); 
-        setFestivals([]); 
-      }
-      else { 
-        setFestivals(data.festivals || []); 
-      }
-    } catch (err) { 
+      setFestivals(data.festivals || []);
+      const trails = data.trails || [];
+      
+      // 2단계: AI 코스 생성 요청 (이동수단 포함)
+      const res = await fetch(`${BASE_API_URL}/api/proxy`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ profile, taste, condition, trails })
+      });
+
+      if (!res.ok) throw new Error("코스 생성 실패");
+      const resultData = await res.json();
+      setResult(resultData);
+      setStep("result");
+    } catch (err: any) { 
       console.error("축제 데이터 요청 실패:", err);
       setFestMessage("실시간 축제 데이터를 가져오지 못했습니다. 연결 상태를 확인해주세요."); 
       setFestivals([]); 
