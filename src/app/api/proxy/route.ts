@@ -24,16 +24,14 @@ export async function GET(request: Request) {
       } catch (e) { return []; }
     };
 
-    const [festItems, cultureItems, tourItems] = await Promise.all([
+    const [festItems, cultureItems] = await Promise.all([
       fetchItems("15"), // 축제/행사
-      fetchItems("14"), // 전시/문화시설
-      fetchItems("12")  // 관광지/팝업 포함
+      fetchItems("14")  // 전시/문화시설
     ]);
 
     const combined = [
       ...(Array.isArray(festItems) ? festItems : (festItems ? [festItems] : [])),
-      ...(Array.isArray(cultureItems) ? cultureItems : (cultureItems ? [cultureItems] : [])),
-      ...(Array.isArray(tourItems) ? tourItems : (tourItems ? [tourItems] : []))
+      ...(Array.isArray(cultureItems) ? cultureItems : (cultureItems ? [cultureItems] : []))
     ].filter(i => i && (i.title || i.addr1));
 
     return NextResponse.json({ festivals: combined.sort(() => 0.5 - Math.random()) }, {
