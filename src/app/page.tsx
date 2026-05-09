@@ -132,7 +132,7 @@ export default function DateThemeApp() {
       const data = await festRes.json();
       
       if (data.error || data.message) {
-        throw new Error(data.error || data.message);
+        throw data;
       }
       
       setFestivals(data.festivals || []);
@@ -151,8 +151,9 @@ export default function DateThemeApp() {
       setStep("result");
     } catch (err: any) { 
       console.error("축제 데이터 요청 실패:", err);
-      const detailMsg = err.details ? ` (${err.details})` : "";
-      setFestMessage(`데이터를 가져오지 못했습니다. ${detailMsg}\nVercel 환경변수(TOUR_API_KEY) 설정을 확인해주세요.`); 
+      // 서버에서 보낸 상세 에러 메시지가 있다면 표시
+      const serverMsg = err.message || "알 수 없는 에러";
+      setFestMessage(`데이터 요청 실패: ${serverMsg}\n\n[디버깅 정보]\n${JSON.stringify(err, null, 2)}`); 
       setFestivals([]); 
     }
     finally { setFestLoading(false); }
