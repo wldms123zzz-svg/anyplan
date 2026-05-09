@@ -141,17 +141,34 @@ export async function POST(request: Request) {
     });
 
     const gData = await geminiRes.json();
+    
+    if (!geminiRes.ok) {
+      console.error("Gemini API Error Response:", JSON.stringify(gData));
+      return NextResponse.json({ error: gData.error?.message || "Gemini API Error" }, { status: geminiRes.status });
+    }
+
     let resultText = gData.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    console.log("Raw Gemini Text:", resultText);
+
+    if (!resultText) {
+      return NextResponse.json({ error: "AI가 응답을 생성하지 못했습니다. (Safety Filter 등)" }, { status: 500 });
+    }
+
     const jsonMatch = resultText.match(/\{[\s\S]*\}/);
     if (jsonMatch) resultText = jsonMatch[0];
     
-    return NextResponse.json(JSON.parse(resultText), {
-      headers: { 
-        'Access-Control-Allow-Origin': '*', 
-        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type'
-      }
-    });
+    try {
+      return NextResponse.json(JSON.parse(resultText), {
+        headers: { 
+          'Access-Control-Allow-Origin': '*', 
+          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type'
+        }
+      });
+    } catch (e) {
+      console.error("JSON Parse Error. Raw Text:", resultText);
+      return NextResponse.json({ error: "AI 응답 형식이 올바르지 않습니다.", raw: resultText.slice(0, 100) }, { status: 500 });
+    }
 
   } catch (error: any) {
     console.error("AI Proxy Error:", error);
