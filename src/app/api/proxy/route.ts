@@ -17,55 +17,46 @@ export async function GET(request: Request) {
   const region = searchParams.get("region") || "";
   const areaCode = AREA_CODES[region] || "";
 
+  // 1. 브라우저인 것처럼 속이기 위한 헤더
+  const headers = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Accept': 'application/json'
+  };
+
   try {
-    const queryParams = new URLSearchParams({
-      serviceKey: tourKey, // 서비스키를 파라미터 맨 앞에 배치
-      MobileOS: 'ETC',
-      MobileApp: 'anyplan',
-      _type: 'json',
-      areaCode: areaCode,
-      numOfRows: '30',
-      contentTypeId: '15',
-      arrange: 'Q'
-    });
+    // 2. 서비스 키를 맨 앞에 배치 (일부 공공데이터 API 필수 조건)
+    const baseUrl = "http://apis.data.go.kr/B551011/KorService1/areaBasedList";
+    const query = `?serviceKey=${tourKey}&numOfRows=30&pageNo=1&MobileOS=ETC&MobileApp=anyplan&_type=json&contentTypeId=15&areaCode=${areaCode}&arrange=A`;
+    const tourUrl = baseUrl + query;
 
-    // 1. SSL 문제를 피하기 위해 http 사용 시도
-    // 2. 게이트웨이(GW) API 엔드포인트에 맞춘 주소 구성
-    const tourUrl = `http://apis.data.go.kr/B551011/KorService2/areaBasedList2?${queryParams.toString()}`;
-    const durunubiUrl = `http://apis.data.go.kr/B551011/DurunubiService/courseList?serviceKey=${tourKey}&MobileOS=ETC&MobileApp=anyplan&_type=json&numOfRows=20&pageNo=1`;
+    console.log("Attempting KorService1 call...");
 
-    const [tourRes, duruRes] = await Promise.all([
-      fetch(tourUrl),
-      fetch(durunubiUrl)
-    ]);
+    const res = await fetch(tourUrl, { headers });
+    const text = await res.text();
 
-    const tourDataText = await tourRes.text();
-    const duruDataText = await duruRes.text();
-
-    if (tourDataText.includes("Unexpected errors") || tourDataText.includes("SERVICE KEY IS NOT REGISTERED")) {
-      // https로 다시 시도 (http가 안될 경우 대비)
-      const secureTourUrl = tourUrl.replace("http://", "https://");
-      const secureRes = await fetch(secureTourUrl);
-      const secureText = await secureRes.text();
+    if (text.includes("Unexpected errors")) {
+      // 3. 만약 실패하면 KorService2로 다시 시도 (주소 형식 변경)
+      const v2Url = `https://apis.data.go.kr/B551011/KorService2/areaBasedList2?serviceKey=${tourKey}&MobileOS=ETC&MobileApp=anyplan&_type=json&areaCode=${areaCode}&numOfRows=30&contentTypeId=15`;
+      const res2 = await fetch(v2Url, { headers });
+      const text2 = await res2.text();
       
-      const tourData = JSON.parse(secureText);
-      return NextResponse.json({ 
-        festivals: tourData?.response?.body?.items?.item || [],
-        trails: [] // 산책길은 일단 비움
-      }, { headers: corsHeaders });
+      if (text2.includes("Unexpected errors")) {
+        throw new Error(`모든 API 버전에서 거부되었습니다: ${text2.slice(0, 50)}`);
+      }
+      
+      const data2 = JSON.parse(text2);
+      return NextResponse.json({ festivals: data2?.response?.body?.items?.item || [], trails: [] }, { headers: corsHeaders });
     }
 
-    const tourData = JSON.parse(tourDataText);
-    const duruData = JSON.parse(duruDataText);
-
+    const data = JSON.parse(text);
     return NextResponse.json({ 
-      festivals: tourData?.response?.body?.items?.item || [],
-      trails: duruData?.response?.body?.items?.item || []
+      festivals: data?.response?.body?.items?.item || [],
+      trails: [] 
     }, { headers: corsHeaders });
 
   } catch (e: any) {
     return NextResponse.json({ 
-      error: "관광공사 서버 응답 오류", 
+      error: "관광공사 서버 최종 거부", 
       details: e.message 
     }, { status: 200, headers: corsHeaders });
   }
