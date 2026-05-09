@@ -11,6 +11,9 @@ const TAGS = {
   이동수단: ["뚜벅이 데이트 🚶‍♀️", "자차 데이트 🚗"],
 };
 
+// API 프록시 서버 주소 (Vercel 배포 후 해당 URL로 변경 필요)
+const BASE_API_URL = "https://anyplan-gamma.vercel.app";
+
 export default function DateThemeApp() {
   const [step, setStep] = useState("start");
   const [profile, setProfile] = useState({ myAge: 25, myGender: "여", partnerAge: 25, partnerGender: "남" });
@@ -39,7 +42,7 @@ export default function DateThemeApp() {
   const [rolling, setRolling] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
-  const [partnerVote, setPartnerVote] = useState<string | null>(null); 
+  const [partnerVote, setPartnerVote] = useState<string | null>(null);
   const [countdown, setCountdown] = useState(5);
   const [loadingTip, setLoadingTextTip] = useState("");
   const [festivals, setFestivals] = useState<{
@@ -61,24 +64,34 @@ export default function DateThemeApp() {
     const sharedData = params.get("data");
     if (sharedData) {
       try {
-        const decodedData = decodeURIComponent(sharedData);
-        const parsed = JSON.parse(decodedData);
-        setResult(parsed);
-        setStep("result");
-      } catch (e) {
-        console.error("공유 데이터 파싱 실패", e);
+        // 안전하게 데이터 디코딩 및 파싱
+        const jsonString = decodeURIComponent(sharedData.replace(/\+/g, " "));
+        const parsed = JSON.parse(jsonString);
+        if (parsed && parsed.theme) {
+          setResult(parsed);
+          setStep("result");
+        }
+      } catch (e: any) {
+        console.error("공유 데이터 처리 실패:", e);
       }
     }
   }, []);
 
   useEffect(() => {
-    if (typeof window !== "undefined" && (window as any).toss?.ad?.showBanner) {
-      (window as any).toss.ad.showBanner({
-        adGroupId: "ait.v2.live.0cdc8d469958499a",
-        container: "#toss-ad-container",
-      });
-    }
-  }, [step, loading]);
+    const showAd = () => {
+      if (typeof window !== "undefined" && (window as any).toss?.ad?.showBanner) {
+        try {
+          (window as any).toss.ad.showBanner({
+            adGroupId: "ait.v2.live.0cdc8d469958499a",
+            container: "#toss-ad-container",
+          });
+        } catch (e) { console.error("광고 로드 실패", e); }
+      }
+    };
+    // 돔이 렌더링된 후 약간의 지연을 주어 광고 호출
+    const timer = setTimeout(showAd, 300);
+    return () => clearTimeout(timer);
+  }, [step, loading, result]);
 
   useEffect(() => {
     let interval: any;
@@ -125,15 +138,26 @@ export default function DateThemeApp() {
     if (month) setSelectedMonth(month);
     triggerHaptic(); setFestLoading(true); setShowFestivals(true); setFestMessage("");
     try {
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "";
-      const res = await fetch(`${API_BASE_URL}/api/festivals?t=${Date.now()}`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ region: condition.지역, month: targetMonth }),
-      });
+      const PROXY_URL = `${BASE_API_URL}/api/proxy`;
+      const query = `areaCode=${condition.지역 === "전국" ? "" : condition.지역}&month=${targetMonth}`;
+      console.log("Fetching festivals from:", `${PROXY_URL}?${query}`);
+      
+      const res = await fetch(`${PROXY_URL}?${query}`);
       const data = await res.json();
-      if (data.error || data.message) { setFestMessage(data.error || data.message); setFestivals([]); }
-      else { setFestivals(Array.isArray(data) ? data : []); }
-    } catch (err) { setFestMessage("오류가 발생했습니다."); setFestivals([]); }
+      
+      if (data.error || data.message) { 
+        console.error("Festival API Error:", data.error || data.message);
+        setFestMessage(data.error || data.message); 
+        setFestivals([]); 
+      }
+      else { 
+        setFestivals(data.festivals || []); 
+      }
+    } catch (err) { 
+      console.error("축제 데이터 요청 실패:", err);
+      setFestMessage("실시간 축제 데이터를 가져오지 못했습니다. 연결 상태를 확인해주세요."); 
+      setFestivals([]); 
+    }
     finally { setFestLoading(false); }
   };
 
@@ -141,15 +165,43 @@ export default function DateThemeApp() {
     if (loading) return;
     triggerHaptic(); setLoading(true); setErrorMsg("");
     try {
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "";
-      const res = await fetch(`${API_BASE_URL}/api/theme?t=${Date.now()}`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ profile, taste, condition }),
+      // 1. 데이터 정제 (불필요한 참조 제거)
+      const payload = JSON.parse(JSON.stringify({ profile, taste, condition }));
+      const PROXY_URL = `${BASE_API_URL}/api/proxy`;
+      console.log("Requesting AI theme from:", PROXY_URL, "with payload:", payload);
+      
+      const fetchPromise = fetch(PROXY_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Accept": "application/json" },
+        body: JSON.stringify(payload)
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "API Error");
-      setResult(data); setStep("result");
-    } catch (err: any) { setErrorMsg(`추천 실패: ${err.message}`); }
+
+      // 최소 로딩 시간과 실제 요청 병렬 실행
+      const [res] = await Promise.all([
+        fetchPromise,
+        new Promise(resolve => setTimeout(resolve, 1500))
+      ]);
+
+      if (!res.ok) {
+        let errorInfo = `HTTP ${res.status}`;
+        try { const errData = await res.json(); errorInfo = errData.error || errorInfo; } catch (e) {}
+        throw new Error(errorInfo);
+      }
+
+      const parsedResult = await res.json();
+      if (!parsedResult || !parsedResult.theme) throw new Error("추천 데이터를 받지 못했습니다.");
+      
+      setResult(parsedResult); 
+      setStep("result");
+    } catch (err: any) { 
+      console.error("Critical Error:", err);
+      let msg = err.message || "알 수 없는 오류";
+      // 특정 브라우저 에러 메시지 한글화 및 우회 안내
+      if (msg.includes("expected pattern") || msg.includes("Failed to fetch")) {
+        msg = "연결이 원활하지 않습니다. 잠시 후 '테마 뽑기'를 다시 눌러주세요.";
+      }
+      setErrorMsg(`⚠️ ${msg}`); 
+    }
     finally { setLoading(false); }
   };
 
@@ -163,7 +215,7 @@ export default function DateThemeApp() {
       if (typeof window !== "undefined" && (window as any).toss?.share) { await (window as any).toss.share({ text: shareText }); }
       else if (navigator.share) { await navigator.share({ title: "데이트 추천", text: shareText, url: shareUrl }); }
       else { await navigator.clipboard.writeText(shareText); alert("복사되었습니다!"); }
-    } catch (err) {} finally { setTimeout(() => setIsSharing(false), 500); }
+    } catch (err) { } finally { setTimeout(() => setIsSharing(false), 500); }
   };
 
   const handleVote = (vote: string) => {
@@ -228,13 +280,14 @@ export default function DateThemeApp() {
             <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 24 }}>누구와 함께 가나요?</h2>
             <div style={{ background: "#FFF", padding: 24, borderRadius: 16, marginBottom: 20 }}>
               <p style={{ fontWeight: 700, marginBottom: 16 }}>😎 나의 나이</p>
-              <input type="number" value={profile.myAge} onChange={e => setProfile({...profile, myAge: parseInt(e.target.value) || 0})} style={{ width: "100%", padding: 12, borderRadius: 12, border: "1px solid #EEE" }} />
+              <input type="number" value={profile.myAge} onChange={e => setProfile({ ...profile, myAge: parseInt(e.target.value) || 0 })} style={{ width: "100%", padding: 12, borderRadius: 12, border: "1px solid #EEE" }} />
             </div>
             <div style={{ background: "#FFF", padding: 24, borderRadius: 16, marginBottom: 32 }}>
               <p style={{ fontWeight: 700, marginBottom: 16 }}>🧑‍🤝‍🧑 동행인 나이</p>
-              <input type="number" value={profile.partnerAge} onChange={e => setProfile({...profile, partnerAge: parseInt(e.target.value) || 0})} style={{ width: "100%", padding: 12, borderRadius: 12, border: "1px solid #EEE" }} />
+              <input type="number" value={profile.partnerAge} onChange={e => setProfile({ ...profile, partnerAge: parseInt(e.target.value) || 0 })} style={{ width: "100%", padding: 12, borderRadius: 12, border: "1px solid #EEE" }} />
             </div>
             <button className="roll-btn" onClick={() => setStep("taste")}>다음</button>
+            <button className="roll-btn" style={{ background: "none", color: "#8B95A1", marginTop: 12 }} onClick={() => setStep("profile")}>이전으로</button>
           </div>
         )}
 
@@ -252,6 +305,7 @@ export default function DateThemeApp() {
               </div>
             ))}
             <button className="roll-btn" onClick={() => setStep("condition")}>다음</button>
+            <button className="roll-btn" style={{ background: "none", color: "#8B95A1", marginTop: 12 }} onClick={() => setStep("profile")}>이전으로</button>
           </div>
         )}
 
@@ -262,7 +316,7 @@ export default function DateThemeApp() {
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                 <p style={{ fontSize: 14, fontWeight: 600, color: "#4E5968", margin: 0 }}>지역</p>
                 {condition.지역 && condition.지역 !== "전국" && (
-                  <button 
+                  <button
                     onClick={() => fetchFestivals()}
                     style={{ fontSize: 12, padding: "6px 12px", borderRadius: "8px", border: "none", background: "#E8F3FF", color: "#3182F6", fontWeight: 600, cursor: "pointer" }}
                   >
@@ -291,6 +345,7 @@ export default function DateThemeApp() {
               </div>
             </div>
             <button className="roll-btn" disabled={!condition.지역 || !condition.예산} onClick={rollTheme}>테마 뽑기</button>
+            <button className="roll-btn" style={{ background: "none", color: "#8B95A1", marginTop: 12 }} onClick={() => setStep("taste")}>이전으로</button>
           </div>
         )}
 
@@ -315,10 +370,10 @@ export default function DateThemeApp() {
                 <p style={{ fontSize: 13, fontWeight: 600, color: "#8B95A1", marginBottom: 16 }}>코스 안내</p>
                 {result.doThis.map((item, i) => (
                   <div key={i} style={{ display: "flex", gap: 20, marginBottom: 28, alignItems: "flex-start" }}>
-                    <div style={{ 
-                      color: "#3182F6", 
-                      fontSize: 14, 
-                      fontWeight: 900, 
+                    <div style={{
+                      color: "#3182F6",
+                      fontSize: 14,
+                      fontWeight: 900,
                       fontFamily: "monospace",
                       background: "#E8F3FF",
                       width: 36,
@@ -367,32 +422,32 @@ export default function DateThemeApp() {
       </div>
 
       {showFestivals && (
-        <div style={{ 
-          position: "fixed", top: 0, left: 0, right: 0, bottom: 0, 
-          background: "rgba(0,0,0,0.5)", zIndex: 10000, 
+        <div style={{
+          position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+          background: "rgba(0,0,0,0.5)", zIndex: 10000,
           display: "flex", alignItems: "flex-end", justifyContent: "center"
         }} onClick={() => setShowFestivals(false)}>
-          <div 
-            style={{ 
-              width: "100%", maxWidth: 480, background: "#FFFFFF", 
-              borderTopLeftRadius: 24, borderTopRightRadius: 24, 
-              padding: "32px 24px", minHeight: "60vh", maxHeight: "85vh", 
-              overflowY: "auto", animation: "slideUp 0.3s ease-out" 
-            }} 
+          <div
+            style={{
+              width: "100%", maxWidth: 480, background: "#FFFFFF",
+              borderTopLeftRadius: 24, borderTopRightRadius: 24,
+              padding: "32px 24px", minHeight: "60vh", maxHeight: "85vh",
+              overflowY: "auto", animation: "slideUp 0.3s ease-out"
+            }}
             onClick={e => e.stopPropagation()}
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
               <h3 style={{ fontSize: 20, fontWeight: 700, color: "#191F28", margin: 0 }}>
                 {condition.지역} 다가오는 축제 🎭
               </h3>
-              <button 
+              <button
                 onClick={() => setShowFestivals(false)}
                 style={{ background: "none", border: "none", fontSize: 24, color: "#8B95A1", cursor: "pointer" }}
               >
                 ✕
               </button>
             </div>
-            
+
             <div style={{ display: "flex", overflowX: "auto", gap: 12, marginBottom: 24, paddingBottom: 8, msOverflowStyle: "none", scrollbarWidth: "none" }} className="hide-scrollbar">
               {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(m => (
                 <button
@@ -409,7 +464,7 @@ export default function DateThemeApp() {
                 </button>
               ))}
             </div>
-            
+
             {festMessage ? (
               <div style={{ textAlign: "center", padding: "60px 20px", color: "#8B95A1", lineHeight: 1.6 }}>
                 <div style={{ fontSize: 40, marginBottom: 16 }}>🗺️</div>
@@ -432,7 +487,7 @@ export default function DateThemeApp() {
                     <div style={{ flex: 1 }}>
                       {f.eventstartdate && (
                         <div style={{ fontSize: 13, color: "#3182F6", fontWeight: 600, marginBottom: 4 }}>
-                          {f.eventstartdate.slice(4,6)}.{f.eventstartdate.slice(6,8)} ~ {f.eventenddate?.slice(4,6)}.{f.eventenddate?.slice(6,8)}
+                          {f.eventstartdate.slice(4, 6)}.{f.eventstartdate.slice(6, 8)} ~ {f.eventenddate?.slice(4, 6)}.{f.eventenddate?.slice(6, 8)}
                         </div>
                       )}
                       <div style={{ fontSize: 16, fontWeight: 700, color: "#191F28", marginBottom: 4 }}>{f.title}</div>

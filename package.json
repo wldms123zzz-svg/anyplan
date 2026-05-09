@@ -1,10 +1,11 @@
 {
   "name": "date-app",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:toss": "mv src/app/api src/app/_api && TOSS_BUNDLE=true next build; mv src/app/_api src/app/api",
     "start": "next start",
     "lint": "eslint"
   },

@@ -1,8 +1,7 @@
 {
-  "name": "today-date",
+  "name": "anyp1an",
   "displayName": "오늘뭐하지",
-  "version": "1.0.0",
-  "deploymentId": "0cdc8d469958499a",
+  "version": "1.1.0",
   "appId": "31725",
   "description": "AI 데이트/외출 플래너",
   "entryPage": "index.html",

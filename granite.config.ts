@@ -1,7 +1,7 @@
 import { defineConfig } from '@apps-in-toss/web-framework/config';
 
 export default defineConfig({
-  appName: 'today-date',
+  appName: 'anyp1an',
   brand: {
     displayName: '오늘뭐하지',
     primaryColor: '#3182F6',
@@ -12,7 +12,7 @@ export default defineConfig({
     port: 3000,
     commands: {
       dev: 'npm run dev',
-      build: 'npm run build',
+      build: 'npm run build:toss',
     },
   },
   permissions: [],
