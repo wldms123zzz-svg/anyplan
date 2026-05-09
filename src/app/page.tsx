@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
+import { BannerAd } from "@/components/BannerAd";
 
 // 취향 태그 풀
 const TAGS = {
@@ -77,21 +78,8 @@ export default function DateThemeApp() {
     }
   }, []);
 
-  useEffect(() => {
-    const showAd = () => {
-      if (typeof window !== "undefined" && (window as any).toss?.ad?.showBanner) {
-        try {
-          (window as any).toss.ad.showBanner({
-            adGroupId: "ait.v2.live.0cdc8d469958499a",
-            container: "#toss-ad-container",
-          });
-        } catch (e) { console.error("광고 로드 실패", e); }
-      }
-    };
-    // 돔이 렌더링된 후 약간의 지연을 주어 광고 호출
-    const timer = setTimeout(showAd, 300);
-    return () => clearTimeout(timer);
-  }, [step, loading, result]);
+  // 배너 광고 아이디
+  const AD_GROUP_ID = "ait.v2.live.0cdc8d469958499a";
 
   useEffect(() => {
     let interval: any;
@@ -426,7 +414,7 @@ export default function DateThemeApp() {
         )}
 
         {/* 하단 광고 영역 */}
-        <div id="toss-ad-container" style={{ width: "100%", minHeight: "100px", marginTop: "40px", borderRadius: "16px", overflow: "hidden" }}></div>
+        <BannerAd adGroupId={AD_GROUP_ID} />
       </div>
 
       {showFestivals && (
