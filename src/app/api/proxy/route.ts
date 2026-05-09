@@ -14,12 +14,23 @@ const corsHeaders = {
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const region = searchParams.get("region") || "";
+  const month = searchParams.get("month") || String(new Date().getMonth() + 1);
   const tourKey = process.env.TOUR_API_KEY;
   const areaCode = AREA_CODES[region] || "";
+  
+  // 날짜 계산 (YYYYMMDD 형식)
+  const year = new Date().getFullYear();
+  const formattedMonth = month.padStart(2, '0');
+  const eventStartDate = `${year}${formattedMonth}01`; // 선택한 월의 1일부터 조회
 
   try {
-    const tourUrl = `https://apis.data.go.kr/B551011/KorService2/areaBasedList2?serviceKey=${tourKey}&MobileOS=ETC&MobileApp=anyplan&_type=json&areaCode=${areaCode}&numOfRows=30&contentTypeId=15&arrange=Q`;
+    // 1. 축제 검색 전용 API (searchFestival2)
+    const tourUrl = `https://apis.data.go.kr/B551011/KorService2/searchFestival2?serviceKey=${tourKey}&MobileOS=ETC&MobileApp=anyplan&_type=json&areaCode=${areaCode}&eventStartDate=${eventStartDate}&numOfRows=30&arrange=A`;
+    
+    // 2. 두루누비 산책길 API
     const durunubiUrl = `https://apis.data.go.kr/B551011/DurunubiService/courseList?serviceKey=${tourKey}&MobileOS=ETC&MobileApp=anyplan&_type=json&numOfRows=20&pageNo=1`;
+
+    console.log("Fetching Festivals from:", tourUrl);
 
     const [tourRes, duruRes] = await Promise.all([
       fetch(tourUrl).then(res => res.json()),
@@ -29,11 +40,13 @@ export async function GET(request: Request) {
     const festivals = tourRes?.response?.body?.items?.item || [];
     const trails = duruRes?.response?.body?.items?.item || [];
 
+    // 데이터 정제 및 반환
     return NextResponse.json({ 
       festivals: Array.isArray(festivals) ? festivals : (festivals ? [festivals] : []),
       trails: Array.isArray(trails) ? trails : (trails ? [trails] : [])
     }, { headers: corsHeaders });
   } catch (e: any) {
+    console.error("Festival Fetch Error:", e);
     return NextResponse.json({ error: e.message }, { status: 500, headers: corsHeaders });
   }
 }
