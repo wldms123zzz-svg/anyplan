@@ -54,6 +54,7 @@ export async function POST(request: Request) {
       2. 이동수단이 '자차'면 주차장(무료/유료 주차장 명칭 및 팁) 정보를 필수 포함하세요.
       3. 두루누비 산책길 중 하나를 골라 코스에 힙하게 녹여내세요.
       4. 인스타 핫플 감성 유지. 강조 표시(**) 금지. 성수동 언급 금지.
+      5. randomTwist(미션)은 단순히 '사진 찍기'가 아니라, '서로의 30초 초상화 그려주기', '가장 마음에 드는 소품 하나 사주기', '동네에서 가장 오래되어 보이는 간판 찾기', '특이한 모양의 나뭇잎 줍기' 등 구체적이고 활동적인 미션을 1개 제안하세요.
       
       JSON 응답:
       {
@@ -64,7 +65,7 @@ export async function POST(request: Request) {
         "doThis": ["활동1", "활동2", "활동3"],
         "transportInfo": "대중교통 상세(출구번호 등) 혹은 주차장 상세 정보",
         "talkTopic": "대화 주제",
-        "randomTwist": "미션",
+        "randomTwist": "구체적이고 재미있는 미션 (활동 위주)",
         "perfectFor": "추천 대상",
         "nextDate": { "place": "다음 핫플", "reason": "이유", "emoji": "이모지" }
       }
