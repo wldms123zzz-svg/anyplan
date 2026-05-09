@@ -12,39 +12,60 @@ const corsHeaders = {
 };
 
 export async function GET(request: Request) {
-  const tourKey = process.env.TOUR_API_KEY;
+  const tourKey = process.env.TOUR_API_KEY || "";
   const { searchParams } = new URL(request.url);
   const region = searchParams.get("region") || "";
   const areaCode = AREA_CODES[region] || "";
 
-  // 기본적인 응답 테스트를 위해 로그 추가
-  console.log("Request received for region:", region);
-
   try {
-    const tourUrl = `https://apis.data.go.kr/B551011/KorService2/areaBasedList2?serviceKey=${tourKey}&MobileOS=ETC&MobileApp=anyplan&_type=json&areaCode=${areaCode}&numOfRows=30&contentTypeId=15&arrange=Q`;
-    const durunubiUrl = `https://apis.data.go.kr/B551011/DurunubiService/courseList?serviceKey=${tourKey}&MobileOS=ETC&MobileApp=anyplan&_type=json&numOfRows=20&pageNo=1`;
+    const queryParams = new URLSearchParams({
+      serviceKey: tourKey, // 서비스키를 파라미터 맨 앞에 배치
+      MobileOS: 'ETC',
+      MobileApp: 'anyplan',
+      _type: 'json',
+      areaCode: areaCode,
+      numOfRows: '30',
+      contentTypeId: '15',
+      arrange: 'Q'
+    });
 
-    const responses = await Promise.all([
+    // 1. SSL 문제를 피하기 위해 http 사용 시도
+    // 2. 게이트웨이(GW) API 엔드포인트에 맞춘 주소 구성
+    const tourUrl = `http://apis.data.go.kr/B551011/KorService2/areaBasedList2?${queryParams.toString()}`;
+    const durunubiUrl = `http://apis.data.go.kr/B551011/DurunubiService/courseList?serviceKey=${tourKey}&MobileOS=ETC&MobileApp=anyplan&_type=json&numOfRows=20&pageNo=1`;
+
+    const [tourRes, duruRes] = await Promise.all([
       fetch(tourUrl),
       fetch(durunubiUrl)
     ]);
 
-    const results = await Promise.all(responses.map(async (res) => {
-      const text = await res.text();
-      try {
-        return JSON.parse(text);
-      } catch (e) {
-        throw new Error(`응답이 JSON이 아닙니다: ${text.slice(0, 100)}`);
-      }
-    }));
+    const tourDataText = await tourRes.text();
+    const duruDataText = await duruRes.text();
+
+    if (tourDataText.includes("Unexpected errors") || tourDataText.includes("SERVICE KEY IS NOT REGISTERED")) {
+      // https로 다시 시도 (http가 안될 경우 대비)
+      const secureTourUrl = tourUrl.replace("http://", "https://");
+      const secureRes = await fetch(secureTourUrl);
+      const secureText = await secureRes.text();
+      
+      const tourData = JSON.parse(secureText);
+      return NextResponse.json({ 
+        festivals: tourData?.response?.body?.items?.item || [],
+        trails: [] // 산책길은 일단 비움
+      }, { headers: corsHeaders });
+    }
+
+    const tourData = JSON.parse(tourDataText);
+    const duruData = JSON.parse(duruDataText);
 
     return NextResponse.json({ 
-      festivals: results[0]?.response?.body?.items?.item || [],
-      trails: results[1]?.response?.body?.items?.item || []
+      festivals: tourData?.response?.body?.items?.item || [],
+      trails: duruData?.response?.body?.items?.item || []
     }, { headers: corsHeaders });
+
   } catch (e: any) {
     return NextResponse.json({ 
-      error: "백엔드 호출 실패", 
+      error: "관광공사 서버 응답 오류", 
       details: e.message 
     }, { status: 200, headers: corsHeaders });
   }
