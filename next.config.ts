@@ -1,7 +1,13 @@
-/** @type {import('next').NextConfig} */
-const nextConfig = {
-  output: process.env.TOSS_BUNDLE === 'true' ? 'export' : undefined,
-  images: { unoptimized: true },
+import type { NextConfig } from "next";
+
+const isTossBundle = process.env.TOSS_BUNDLE === "true";
+
+const nextConfig: NextConfig = {
+  // 토스 번들 빌드 시에만 static export 모드 사용
+  output: isTossBundle ? "export" : undefined,
+  images: {
+    unoptimized: true,
+  },
   eslint: {
     ignoreDuringBuilds: true,
   },
