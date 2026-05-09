@@ -16,16 +16,16 @@ export async function GET(request: Request) {
     const targetMonth = month.padStart(2, "0");
     const dateStr = `${new Date().getFullYear()}${targetMonth}01`;
 
-    // 실시간 행사/축제/전시 (14, 15번 통합)
     const fetchItems = async (type: string) => {
       const url = `https://apis.data.go.kr/B551011/KorService2/areaBasedList2?serviceKey=${tourKey}&MobileOS=ETC&MobileApp=anyplan&_type=json&areaCode=${areaCode}&numOfRows=50&contentTypeId=${type}&arrange=Q`;
       const res = await fetch(url);
+      if (!res.ok) return [];
       const d = await res.json();
       return d?.response?.body?.items?.item || [];
     };
 
     const [events, culture] = await Promise.all([fetchItems("15"), fetchItems("14")]);
-    const combined = [...(Array.isArray(events) ? events : [events]), ...(Array.isArray(culture) ? culture : [culture])].filter(i => i && i.title);
+    const combined = [...(Array.isArray(events) ? events : (events ? [events] : [])), ...(Array.isArray(culture) ? culture : (culture ? [culture] : []))].filter(i => i && i.title);
 
     return NextResponse.json({ festivals: combined }, {
       headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' }
@@ -41,18 +41,27 @@ export async function POST(request: Request) {
   const geminiKey = process.env.GEMINI_API_KEY;
 
   try {
-    const prompt = `데이트 코스 추천: 지역(${condition.지역}), 취향(${taste.무드}, ${taste.활동}), 예산(${condition.예산}). 음악/공연 선택시 콘서트 중심 추천. 커플/연인 단어 금지. JSON 형식 응답.`;
+    const prompt = `데이트 코스 추천: 지역(${condition.지역}), 취향(${taste.무드}, ${taste.활동}), 예산(${condition.예산}). 음악 선택시 콘서트 추천. 커플/연인 단어 금지. JSON 형식 응답. { "theme": "...", "emoji": "...", "vibe": [], "desc": "...", "doThis": [], "transportInfo": "...", "talkTopic": "...", "randomTwist": "...", "perfectFor": "...", "nextDate": { "place": "...", "reason": "...", "emoji": "..." } }`;
     
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`, {
+    const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
     });
 
-    const data = await res.json();
+    const data = await geminiRes.json();
+    
+    if (!geminiRes.ok) {
+      return NextResponse.json({ error: data.error?.message || "Gemini API 에러" }, { status: geminiRes.status });
+    }
+
     let text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (jsonMatch) text = jsonMatch[0];
+
+    if (!text) {
+      return NextResponse.json({ error: "AI 응답이 비어있습니다." }, { status: 500 });
+    }
 
     return NextResponse.json(JSON.parse(text), {
       headers: { 'Access-Control-Allow-Origin': '*' }
