@@ -14,32 +14,29 @@ export async function GET(request: Request) {
       "경기": "31", "강원": "32", "충북": "33", "충남": "34", "경북": "35", "경남": "36", "전북": "37", "전남": "38", "제주": "39"
     };
     const areaCode = AREA_CODES[region] || "";
-    const targetYear = new Date().getFullYear();
-    const targetMonth = month.padStart(2, "0");
-    const dateStr = `${targetYear}${targetMonth}01`;
+    // 여러 타입을 병렬로 가져와서 합침 (15: 축제, 14: 문화시설/전시, 12: 관광지)
+    const fetchItems = async (contentTypeId: string) => {
+      try {
+        const url = `https://apis.data.go.kr/B551011/KorService2/areaBasedList2?serviceKey=${tourKey}&MobileOS=ETC&MobileApp=anyplan&_type=json&areaCode=${areaCode}&numOfRows=30&contentTypeId=${contentTypeId}&arrange=Q`;
+        const res = await fetch(url);
+        const d = await res.json();
+        return d?.response?.body?.items?.item || [];
+      } catch (e) { return []; }
+    };
 
-    const res = await fetch(`https://apis.data.go.kr/B551011/KorService2/searchFestival2?serviceKey=${tourKey}&MobileOS=ETC&MobileApp=anyplan&_type=json&eventStartDate=${dateStr}&areaCode=${areaCode}&numOfRows=20`);
-    
-    if (!res.ok) {
-      return NextResponse.json({ error: `API request failed with status ${res.status}` }, { status: res.status });
-    }
+    const [festItems, cultureItems, tourItems] = await Promise.all([
+      fetchItems("15"), // 축제/행사
+      fetchItems("14"), // 전시/문화시설
+      fetchItems("12")  // 관광지/팝업 포함
+    ]);
 
-    const text = await res.text();
-    let data;
-    try {
-      data = JSON.parse(text);
-    } catch (e) {
-      // If it's XML, it's likely an error message from the portal
-      if (text.includes('<returnAuthMsg>')) {
-        const match = text.match(/<returnAuthMsg>(.*)<\/returnAuthMsg>/);
-        return NextResponse.json({ error: match ? match[1] : 'API Auth Error (XML)' }, { status: 401 });
-      }
-      return NextResponse.json({ error: 'Invalid JSON response from API', details: text.slice(0, 200) }, { status: 500 });
-    }
+    const combined = [
+      ...(Array.isArray(festItems) ? festItems : (festItems ? [festItems] : [])),
+      ...(Array.isArray(cultureItems) ? cultureItems : (cultureItems ? [cultureItems] : [])),
+      ...(Array.isArray(tourItems) ? tourItems : (tourItems ? [tourItems] : []))
+    ].filter(i => i && (i.title || i.addr1));
 
-    const items = data?.response?.body?.items?.item || [];
-
-    return NextResponse.json({ festivals: Array.isArray(items) ? items : (items ? [items] : []) }, {
+    return NextResponse.json({ festivals: combined.sort(() => 0.5 - Math.random()) }, {
       headers: { 
         'Access-Control-Allow-Origin': '*', 
         'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
@@ -110,10 +107,10 @@ export async function POST(request: Request) {
       } catch (e) { console.error("Multi API Error", e); }
     }
 
-    // 2. Gemini AI 호출
+    // 2. Gemini AI 호출 (v1 버전 사용)
     const prompt = `
       사용자 정보: 지역(${currentRegion}), 취향(${taste.무드.join(", ")}, ${taste.활동.join(", ")}), 예산(${condition.예산})
-      실시간 참고 장소: ${realData || "해당 지역 주요 명소"}
+      실시간 참고 장소(축제, 팝업, 전시 포함): ${realData || "해당 지역 주요 명소"}
 
       위 정보를 바탕으로 센스 있는 3단계 데이트 코스를 짜주세요. 
       취향(${taste.활동.join(", ")})이 조화롭게 포함되어야 합니다.
@@ -134,7 +131,7 @@ export async function POST(request: Request) {
       }
     `;
 
-    const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`, {
+    const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${geminiKey}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
