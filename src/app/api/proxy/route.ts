@@ -8,21 +8,16 @@ const AREA_CODES: Record<string, string> = {
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, x-requested-with",
-  "Access-Control-Max-Age": "86400",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
 };
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const region = searchParams.get("region") || "";
-  const month = searchParams.get("month") || "05";
   const tourKey = process.env.TOUR_API_KEY;
   const areaCode = AREA_CODES[region] || "";
 
   try {
-    const targetMonth = month.padStart(2, "0");
-    const dateStr = `${new Date().getFullYear()}${targetMonth}01`;
-
     const fetchItems = async (type: string) => {
       const url = `https://apis.data.go.kr/B551011/KorService2/areaBasedList2?serviceKey=${tourKey}&MobileOS=ETC&MobileApp=anyplan&_type=json&areaCode=${areaCode}&numOfRows=50&contentTypeId=${type}&arrange=Q`;
       const res = await fetch(url);
@@ -32,7 +27,7 @@ export async function GET(request: Request) {
     };
 
     const [events, culture] = await Promise.all([fetchItems("15"), fetchItems("14")]);
-    const combined = [...(Array.isArray(events) ? events : (events ? [events] : [])), ...(Array.isArray(culture) ? culture : (culture ? [culture] : []))].filter(i => i && i.title);
+    const combined = [...(Array.isArray(events) ? events : [events]), ...(Array.isArray(culture) ? culture : [culture])].filter(i => i && i.title);
 
     return NextResponse.json({ festivals: combined }, { headers: corsHeaders });
   } catch (e: any) {
@@ -42,29 +37,35 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   const body = await request.json();
-  const { profile, taste, condition } = body;
+  const { taste, condition } = body;
   const geminiKey = process.env.GEMINI_API_KEY;
 
-  try {
-    const prompt = `데이트 코스 추천: 지역(${condition.지역}), 취향(${taste.무드}, ${taste.활동}), 예산(${condition.예산}). 음악 선택시 콘서트 추천. 커플/연인 단어 금지. JSON 형식 응답.`;
-    
-    const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-    });
+  const models = ["gemini-2.0-flash", "gemini-pro-latest", "gemini-flash-latest"];
+  
+  for (const model of models) {
+    try {
+      const prompt = `데이트 코스 추천: 지역(${condition.지역}), 취향(${taste.무드}, ${taste.활동}), 예산(${condition.예산}). 음악 선택시 콘서트 추천. 커플/연인 단어 금지. JSON 형식 응답.`;
+      
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+      });
 
-    const data = await geminiRes.json();
-    if (!geminiRes.ok) return NextResponse.json({ error: data.error?.message || "Gemini Error" }, { status: geminiRes.status, headers: corsHeaders });
+      if (!res.ok) continue; // 다음 모델로 재시도
 
-    let text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (jsonMatch) text = jsonMatch[0];
-
-    return NextResponse.json(JSON.parse(text), { headers: corsHeaders });
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500, headers: corsHeaders });
+      const data = await res.json();
+      let text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        return NextResponse.json(JSON.parse(jsonMatch[0]), { headers: corsHeaders });
+      }
+    } catch (e) {
+      console.error(`Model ${model} failed`, e);
+    }
   }
+
+  return NextResponse.json({ error: "모든 AI 모델이 응답에 실패했습니다." }, { status: 500, headers: corsHeaders });
 }
 
 export async function OPTIONS() {
