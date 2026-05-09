@@ -270,6 +270,7 @@ export default function DateThemeApp() {
               ))}
             </div>
             <button className="roll-btn" onClick={() => setStep("profile")}>시작하기</button>
+            <p style={{ textAlign: "center", color: "#ADB5BD", fontSize: 12, marginTop: 16 }}>v1.4.0</p>
           </div>
         )}
 
