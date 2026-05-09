@@ -151,7 +151,8 @@ export default function DateThemeApp() {
       setStep("result");
     } catch (err: any) { 
       console.error("축제 데이터 요청 실패:", err);
-      setFestMessage("실시간 축제 데이터를 가져오지 못했습니다. 연결 상태를 확인해주세요."); 
+      const detailMsg = err.details ? ` (${err.details})` : "";
+      setFestMessage(`데이터를 가져오지 못했습니다. ${detailMsg}\nVercel 환경변수(TOUR_API_KEY) 설정을 확인해주세요.`); 
       setFestivals([]); 
     }
     finally { setFestLoading(false); }

@@ -47,7 +47,11 @@ export async function GET(request: Request) {
     }, { headers: corsHeaders });
   } catch (e: any) {
     console.error("Festival Fetch Error:", e);
-    return NextResponse.json({ error: e.message }, { status: 500, headers: corsHeaders });
+    return NextResponse.json({ 
+      error: "백엔드 API 호출 실패", 
+      details: e.message,
+      tourKeyExists: !!process.env.TOUR_API_KEY 
+    }, { status: 500, headers: corsHeaders });
   }
 }
 
