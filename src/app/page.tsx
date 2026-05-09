@@ -138,11 +138,11 @@ export default function DateThemeApp() {
     if (month) setSelectedMonth(month);
     triggerHaptic(); setFestLoading(true); setShowFestivals(true); setFestMessage("");
     try {
-      const PROXY_URL = `${BASE_API_URL}/api/proxy`;
-      const query = `areaCode=${condition.지역 === "전국" ? "" : condition.지역}&month=${targetMonth}`;
-      console.log("Fetching festivals from:", `${PROXY_URL}?${query}`);
+      const region = condition.지역 === "전국" ? "" : condition.지역;
+      const festUrl = `${BASE_API_URL}/api/proxy?region=${region}&month=${targetMonth}&t=${Date.now()}`;
+      console.log("Fetching festivals from:", festUrl);
       
-      const res = await fetch(`${PROXY_URL}?${query}`);
+      const res = await fetch(festUrl);
       const data = await res.json();
       
       if (data.error || data.message) { 

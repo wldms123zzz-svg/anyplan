@@ -14,8 +14,22 @@ export async function GET(request: Request) {
       "경기": "31", "강원": "32", "충북": "33", "충남": "34", "경북": "35", "경남": "36", "전북": "37", "전남": "38", "제주": "39"
     };
     const areaCode = AREA_CODES[region] || "";
-    // 여러 타입을 병렬로 가져와서 합침 (15: 축제, 14: 문화시설/전시, 12: 관광지)
-    const fetchItems = async (contentTypeId: string) => {
+    const targetYear = new Date().getFullYear();
+    const targetMonth = month.padStart(2, "0");
+    const dateStr = `${targetYear}${targetMonth}01`;
+
+    // 1. 실시간 행사/축제 (진행 중인 것 우선)
+    const fetchFestivals = async () => {
+      try {
+        const url = `https://apis.data.go.kr/B551011/KorService2/searchFestival2?serviceKey=${tourKey}&MobileOS=ETC&MobileApp=anyplan&_type=json&eventStartDate=${dateStr}&areaCode=${areaCode}&numOfRows=30`;
+        const res = await fetch(url);
+        const d = await res.json();
+        return d?.response?.body?.items?.item || [];
+      } catch (e) { return []; }
+    };
+
+    // 2. 전시 및 문화시설/행사 (명소 12번은 제외)
+    const fetchPlaces = async (contentTypeId: string) => {
       try {
         const url = `https://apis.data.go.kr/B551011/KorService2/areaBasedList2?serviceKey=${tourKey}&MobileOS=ETC&MobileApp=anyplan&_type=json&areaCode=${areaCode}&numOfRows=30&contentTypeId=${contentTypeId}&arrange=Q`;
         const res = await fetch(url);
@@ -24,17 +38,24 @@ export async function GET(request: Request) {
       } catch (e) { return []; }
     };
 
-    const [festItems, cultureItems] = await Promise.all([
-      fetchItems("15"), // 축제/행사
-      fetchItems("14")  // 전시/문화시설
+    const [ongoingEvents, generalEvents, cultureItems] = await Promise.all([
+      fetchFestivals(),
+      fetchPlaces("15"), // 공연/행사/콘서트
+      fetchPlaces("14")  // 전시/문화시설
     ]);
 
     const combined = [
-      ...(Array.isArray(festItems) ? festItems : (festItems ? [festItems] : [])),
+      ...(Array.isArray(ongoingEvents) ? ongoingEvents : (ongoingEvents ? [ongoingEvents] : [])),
+      ...(Array.isArray(generalEvents) ? generalEvents : (generalEvents ? [generalEvents] : [])),
       ...(Array.isArray(cultureItems) ? cultureItems : (cultureItems ? [cultureItems] : []))
     ].filter(i => i && (i.title || i.addr1));
 
-    return NextResponse.json({ festivals: combined.sort(() => 0.5 - Math.random()) }, {
+    // 중복 제거 및 섞기
+    const uniqueMap = new Map();
+    combined.forEach(item => uniqueMap.set(item.contentid, item));
+    const finalItems = Array.from(uniqueMap.values()).sort(() => 0.5 - Math.random());
+
+    return NextResponse.json({ festivals: finalItems }, {
       headers: { 
         'Access-Control-Allow-Origin': '*', 
         'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
@@ -105,13 +126,15 @@ export async function POST(request: Request) {
       } catch (e) { console.error("Multi API Error", e); }
     }
 
-    // 2. Gemini AI 호출 (v1 버전 사용)
+    // 2. Gemini AI 호출 (Gemini 2.0 Flash 사용 - 가장 안정적)
+    const hasMusic = taste.활동.includes("음악") || taste.활동.includes("공연");
     const prompt = `
       사용자 정보: 지역(${currentRegion}), 취향(${taste.무드.join(", ")}, ${taste.활동.join(", ")}), 예산(${condition.예산})
-      실시간 참고 장소(축제, 팝업, 전시 포함): ${realData || "해당 지역 주요 명소"}
+      실시간 참고 데이터(행사, 공연, 전시 등): ${realData || "해당 지역 주요 명소 및 이벤트"}
 
       위 정보를 바탕으로 센스 있는 3단계 데이트 코스를 짜주세요. 
-      취향(${taste.활동.join(", ")})이 조화롭게 포함되어야 합니다.
+      ${hasMusic ? "사용자가 '음악/공연'을 선택했으므로, 최근의 공연이나 음악 콘서트 정보를 최우선적으로 코스에 포함하세요." : "전시, 행사, 축제 정보를 우선적으로 코스에 반영하세요."}
+      반드시 '실시간 참고 데이터'에 있는 실제 정보를 1개 이상 포함해야 합니다.
       '커플', '연인' 단어 사용 금지.
       
       반드시 아래 JSON 형식으로만 응답하세요:
@@ -129,7 +152,7 @@ export async function POST(request: Request) {
       }
     `;
 
-    const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-live-preview:generateContent?key=${geminiKey}`, {
+    const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
