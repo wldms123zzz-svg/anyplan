@@ -130,14 +130,14 @@ export default function DateThemeApp() {
       const festUrl = `${BASE_API_URL}/api/proxy?region=${region}&month=${targetMonth}&t=${Date.now()}`;
       const festRes = await fetch(festUrl);
       const data = await festRes.json();
-      
+
       if (data.error || data.message) {
         throw data;
       }
-      
+
       setFestivals(data.festivals || []);
       const trails = data.trails || [];
-      
+
       // 2단계: AI 코스 생성 요청 (이동수단 포함)
       const res = await fetch(`${BASE_API_URL}/api/proxy`, {
         method: "POST",
@@ -151,7 +151,9 @@ export default function DateThemeApp() {
       setStep("result");
     } catch (err: any) { 
       console.error("축제 데이터 요청 실패:", err);
-      setFestMessage(err.error || "실시간 축제 데이터를 가져오지 못했습니다. 연결 상태를 확인해주세요."); 
+      const serverMsg = err.error || "데이터 요청 실패";
+      const detailMsg = err.details ? `\n상세: ${err.details}` : "";
+      setFestMessage(`[DEBUG] ${serverMsg}${detailMsg}`); 
       setFestivals([]); 
     }
     finally { setFestLoading(false); }
@@ -165,7 +167,7 @@ export default function DateThemeApp() {
       const payload = JSON.parse(JSON.stringify({ profile, taste, condition }));
       const PROXY_URL = `${BASE_API_URL}/api/proxy`;
       console.log("Requesting AI theme from:", PROXY_URL, "with payload:", payload);
-      
+
       const fetchPromise = fetch(PROXY_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json", "Accept": "application/json" },
@@ -180,23 +182,23 @@ export default function DateThemeApp() {
 
       if (!res.ok) {
         let errorInfo = `HTTP ${res.status}`;
-        try { const errData = await res.json(); errorInfo = errData.error || errorInfo; } catch (e) {}
+        try { const errData = await res.json(); errorInfo = errData.error || errorInfo; } catch (e) { }
         throw new Error(errorInfo);
       }
 
       const parsedResult = await res.json();
       if (!parsedResult || !parsedResult.theme) throw new Error("추천 데이터를 받지 못했습니다.");
-      
-      setResult(parsedResult); 
+
+      setResult(parsedResult);
       setStep("result");
-    } catch (err: any) { 
+    } catch (err: any) {
       console.error("Critical Error:", err);
       let msg = err.name === "TypeError" ? "네트워크 연결 오류 (CORS/URL)" : (err.message || "알 수 없는 오류");
       // 특정 브라우저 에러 메시지 한글화 및 우회 안내
       if (msg.includes("expected pattern") || msg.includes("Failed to fetch")) {
         msg = "연결이 원활하지 않습니다. 잠시 후 '테마 뽑기'를 다시 눌러주세요.";
       }
-      setErrorMsg(`⚠️ ${msg}`); 
+      setErrorMsg(`⚠️ ${msg}`);
     }
     finally { setLoading(false); }
   };

@@ -12,30 +12,41 @@ const corsHeaders = {
 };
 
 export async function GET(request: Request) {
+  const tourKey = process.env.TOUR_API_KEY;
   const { searchParams } = new URL(request.url);
   const region = searchParams.get("region") || "";
-  const tourKey = process.env.TOUR_API_KEY;
   const areaCode = AREA_CODES[region] || "";
 
+  // 기본적인 응답 테스트를 위해 로그 추가
+  console.log("Request received for region:", region);
+
   try {
-    // 이전에 잘 작동하던 지역 기반 조회(areaBasedList2) 방식으로 복구
     const tourUrl = `https://apis.data.go.kr/B551011/KorService2/areaBasedList2?serviceKey=${tourKey}&MobileOS=ETC&MobileApp=anyplan&_type=json&areaCode=${areaCode}&numOfRows=30&contentTypeId=15&arrange=Q`;
     const durunubiUrl = `https://apis.data.go.kr/B551011/DurunubiService/courseList?serviceKey=${tourKey}&MobileOS=ETC&MobileApp=anyplan&_type=json&numOfRows=20&pageNo=1`;
 
-    const [tourRes, duruRes] = await Promise.all([
-      fetch(tourUrl).then(res => res.json()),
-      fetch(durunubiUrl).then(res => res.json())
+    const responses = await Promise.all([
+      fetch(tourUrl),
+      fetch(durunubiUrl)
     ]);
 
-    const festivals = tourRes?.response?.body?.items?.item || [];
-    const trails = duruRes?.response?.body?.items?.item || [];
+    const results = await Promise.all(responses.map(async (res) => {
+      const text = await res.text();
+      try {
+        return JSON.parse(text);
+      } catch (e) {
+        throw new Error(`응답이 JSON이 아닙니다: ${text.slice(0, 100)}`);
+      }
+    }));
 
     return NextResponse.json({ 
-      festivals: Array.isArray(festivals) ? festivals : (festivals ? [festivals] : []),
-      trails: Array.isArray(trails) ? trails : (trails ? [trails] : [])
+      festivals: results[0]?.response?.body?.items?.item || [],
+      trails: results[1]?.response?.body?.items?.item || []
     }, { headers: corsHeaders });
   } catch (e: any) {
-    return NextResponse.json({ error: "데이터를 가져오는데 실패했습니다.", details: e.message }, { status: 500, headers: corsHeaders });
+    return NextResponse.json({ 
+      error: "백엔드 호출 실패", 
+      details: e.message 
+    }, { status: 200, headers: corsHeaders });
   }
 }
 
@@ -71,7 +82,7 @@ export async function POST(request: Request) {
         "nextDate": { "place": "다음 핫플", "reason": "이유", "emoji": "이모지" }
       }
     `;
-    
+
     const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -83,7 +94,7 @@ export async function POST(request: Request) {
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     let cleanText = jsonMatch ? jsonMatch[0] : text;
     cleanText = cleanText.replace(/\*\*/g, "");
-    
+
     return NextResponse.json(JSON.parse(cleanText), { headers: corsHeaders });
   } catch (e: any) {
     return NextResponse.json({ error: "연결 오류가 발생했습니다." }, { status: 500, headers: corsHeaders });
