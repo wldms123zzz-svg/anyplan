@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+export const runtime = "edge";
+
 const AREA_CODES: Record<string, string> = {
   "서울": "1", "인천": "2", "대전": "3", "대구": "4", "광주": "5", "부산": "6", "울산": "7", "세종": "8",
   "경기": "31", "강원": "32", "충북": "33", "충남": "34", "경북": "35", "경남": "36", "전북": "37", "전남": "38", "제주": "39"
@@ -35,32 +37,30 @@ export async function POST(request: Request) {
 
   try {
     const prompt = `
-      당신은 MZ세대의 트렌드를 꿰뚫고 있는 '힙한 데이트 디렉터'입니다. 
-      지역(${condition.지역}), 취향(${taste.무드}, ${taste.활동}), 예산(${condition.예산})을 바탕으로,
-      인스타 핫플, 힙한 감성 공간, 사진이 잘 나오는 트렌디한 데이트 코스를 3단계로 짜주세요.
+      당신은 MZ 트렌드를 이끄는 힙한 데이트 디렉터입니다. 
+      지역(${condition.지역}), 취향(${taste.무드}, ${taste.활동}), 예산(${condition.예산}) 기반.
+      인스타 핫플, 힙한 감성 공간 위주의 3단계 코스를 짜주세요.
       
-      지침:
-      1. 성수, 한남, 압구정 느낌의 '힙한 감성'이 묻어나는 장소와 활동을 추천하세요.
-      2. '인스타 핫플'이나 '팝업 스토어', '감성 전시' 등을 적극 포함하세요.
-      3. 'talkTopic'은 요즘 유행하는 밈이나 흥미로운 심리 대화 위주로 구성하세요.
-      4. 'randomTwist'는 인스타 스토리에 올리기 좋은 신박한 챌린지나 미션이어야 합니다.
-      5. 커플, 연인 단어 사용 금지.
+      주의사항:
+      1. 텍스트에 '**'와 같은 강조 표시(마크다운 볼드체)를 절대 사용하지 마세요.
+      2. '성수동' 등 특정 지역명을 예시로 언급하지 마세요.
+      3. 커플, 연인 단어 사용 금지.
       
       반드시 아래 JSON 형식으로만 응답하세요:
       {
-        "theme": "코스 제목 (힙하고 센스있게)",
+        "theme": "코스 제목",
         "emoji": "이모지",
-        "vibe": ["#인스타핫플", "#힙한감성", "#사진맛집"],
-        "desc": "요즘 가장 핫한 데이트 바이브",
-        "doThis": ["힙한 활동1", "힙한 활동2", "힙한 활동3"],
+        "vibe": ["#해시태그1", "#해시태그2"],
+        "desc": "한 줄 감성",
+        "doThis": ["활동1", "활동2", "활동3"],
         "transportInfo": "이동 팁",
-        "talkTopic": "힙한 대화 주제",
-        "randomTwist": "인스타용 미션",
+        "talkTopic": "대화 주제",
+        "randomTwist": "미션",
         "perfectFor": "추천 대상",
-        "nextDate": { "place": "다음 핫플 추천", "reason": "이유", "emoji": "이모지" }
+        "nextDate": { "place": "다음 추천", "reason": "이유", "emoji": "이모지" }
       }
     `;
-
+    
     const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -72,10 +72,14 @@ export async function POST(request: Request) {
 
     let text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
     const jsonMatch = text.match(/\{[\s\S]*\}/);
-
-    return NextResponse.json(JSON.parse(jsonMatch ? jsonMatch[0] : text), { headers: corsHeaders });
+    let finalJson = jsonMatch ? jsonMatch[0] : text;
+    
+    // 최종 텍스트에서 ** 제거 (안전장치)
+    finalJson = finalJson.replace(/\*\*/g, "");
+    
+    return NextResponse.json(JSON.parse(finalJson), { headers: corsHeaders });
   } catch (e: any) {
-    return NextResponse.json({ error: "현재 힙한 감성을 충전 중입니다. 잠시 후 다시 눌러주세요!" }, { status: 500, headers: corsHeaders });
+    return NextResponse.json({ error: "새로운 감성을 충전 중입니다. 다시 시도해주세요!" }, { status: 500, headers: corsHeaders });
   }
 }
 
