@@ -258,7 +258,7 @@ export default function DateThemeApp() {
             <h1 style={{ fontSize: 28, fontWeight: 700, lineHeight: 1.3 }}>누군가와 함께하는 오늘,<br />어떤 풍경을 담고 싶나요? ✨</h1>
           ) : step !== "result" ? (
             <div style={{ display: "flex", gap: 6 }}>
-              {["profile", "taste", "condition", "stamina"].map((s, i) => (
+              {["profile", "stamina", "taste", "condition"].map((s, i) => (
                 <div key={i} style={{ width: 8, height: 8, borderRadius: "50%", background: step === s ? "#3182F6" : "#D1D6DB" }} />
               ))}
             </div>
@@ -275,7 +275,7 @@ export default function DateThemeApp() {
               ))}
             </div>
             <button className="roll-btn" onClick={() => setStep("profile")}>시작하기</button>
-            <p style={{ textAlign: "center", color: "#ADB5BD", fontSize: 12, marginTop: 16 }}>v2.0.0</p>
+            <p style={{ textAlign: "center", color: "#ADB5BD", fontSize: 12, marginTop: 16 }}>v2.1.0</p>
           </div>
         )}
 
@@ -289,6 +289,35 @@ export default function DateThemeApp() {
             <div style={{ background: "#FFF", padding: 24, borderRadius: 16, marginBottom: 32 }}>
               <p style={{ fontWeight: 700, marginBottom: 16 }}>🧑‍🤝‍🧑 동행인 나이</p>
               <input type="number" value={profile.partnerAge} onChange={e => setProfile({ ...profile, partnerAge: parseInt(e.target.value) || 0 })} style={{ width: "100%", padding: 12, borderRadius: 12, border: "1px solid #EEE" }} />
+            </div>
+            <button className="roll-btn" onClick={() => setStep("stamina")}>다음</button>
+            <button className="roll-btn" style={{ background: "none", color: "#8B95A1", marginTop: 12 }} onClick={() => setStep("start")}>이전으로</button>
+          </div>
+        )}
+
+        {step === "stamina" && (
+          <div className="fade-up">
+            <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 24 }}>오늘 우리의 체력은 어떤가요?</h2>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 32 }}>
+              {[
+                { id: "에너자이저", title: "🔋 에너자이저", desc: "하루 종일 걸어도 지치지 않아요" },
+                { id: "보통", title: "🙂 보통", desc: "적당히 걷고 적당히 쉬고 싶어요" },
+                { id: "종이인형", title: "🪫 종이인형", desc: "최대한 덜 걷고 푹 쉬는 게 최고예요" }
+              ].map(v => (
+                <button 
+                  key={v.id} 
+                  style={{ 
+                    textAlign: "left", padding: "20px", borderRadius: "16px", 
+                    border: condition.체력 === v.id ? "2px solid #3182F6" : "1px solid #E5E8EB",
+                    background: condition.체력 === v.id ? "#F2F8FF" : "#FFF",
+                    transition: "all 0.2s"
+                  }}
+                  onClick={() => setCond("체력", v.id)}
+                >
+                  <p style={{ fontSize: 17, fontWeight: 700, margin: "0 0 4px 0", color: condition.체력 === v.id ? "#3182F6" : "#191F28" }}>{v.title}</p>
+                  <p style={{ fontSize: 14, color: "#6B7684", margin: 0 }}>{v.desc}</p>
+                </button>
+              ))}
             </div>
             <button className="roll-btn" onClick={() => setStep("taste")}>다음</button>
             <button className="roll-btn" style={{ background: "none", color: "#8B95A1", marginTop: 12 }} onClick={() => setStep("profile")}>이전으로</button>
@@ -309,7 +338,7 @@ export default function DateThemeApp() {
               </div>
             ))}
             <button className="roll-btn" onClick={() => setStep("condition")}>다음</button>
-            <button className="roll-btn" style={{ background: "none", color: "#8B95A1", marginTop: 12 }} onClick={() => setStep("profile")}>이전으로</button>
+            <button className="roll-btn" style={{ background: "none", color: "#8B95A1", marginTop: 12 }} onClick={() => setStep("stamina")}>이전으로</button>
           </div>
         )}
 
@@ -353,32 +382,8 @@ export default function DateThemeApp() {
           </div>
         )}
 
-        {step === "stamina" && (
-          <div className="fade-up">
-            <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 24 }}>오늘 우리의 체력은 어떤가요?</h2>
-            <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 32 }}>
-              {[
-                { id: "에너자이저", title: "🔋 에너자이저", desc: "하루 종일 걸어도 지치지 않아요" },
-                { id: "보통", title: "🙂 보통", desc: "적당히 걷고 적당히 쉬고 싶어요" },
-                { id: "종이인형", title: "🪫 종이인형", desc: "최대한 덜 걷고 푹 쉬는 게 최고예요" }
-              ].map(v => (
-                <button 
-                  key={v.id} 
-                  style={{ 
-                    textAlign: "left", padding: "20px", borderRadius: "16px", 
-                    border: condition.체력 === v.id ? "2px solid #3182F6" : "1px solid #E5E8EB",
-                    background: condition.체력 === v.id ? "#F2F8FF" : "#FFF",
-                    transition: "all 0.2s"
-                  }}
-                  onClick={() => setCond("체력", v.id)}
-                >
-                  <p style={{ fontSize: 17, fontWeight: 700, margin: "0 0 4px 0", color: condition.체력 === v.id ? "#3182F6" : "#191F28" }}>{v.title}</p>
-                  <p style={{ fontSize: 14, color: "#6B7684", margin: 0 }}>{v.desc}</p>
-                </button>
-              ))}
-            </div>
             <button className="roll-btn" onClick={rollTheme}>테마 설계하기</button>
-            <button className="roll-btn" style={{ background: "none", color: "#8B95A1", marginTop: 12 }} onClick={() => setStep("condition")}>이전으로</button>
+            <button className="roll-btn" style={{ background: "none", color: "#8B95A1", marginTop: 12 }} onClick={() => setStep("taste")}>이전으로</button>
           </div>
         )}
 
