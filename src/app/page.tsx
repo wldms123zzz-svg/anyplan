@@ -277,7 +277,7 @@ export default function DateThemeApp() {
               ))}
             </div>
             <button className="roll-btn" onClick={() => setStep("profile")}>시작하기</button>
-            <p style={{ textAlign: "center", color: "#ADB5BD", fontSize: 12, marginTop: 16 }}>v2.6.0</p>
+            <p style={{ textAlign: "center", color: "#ADB5BD", fontSize: 12, marginTop: 16 }}>v2.7.0</p>
           </div>
         )}
 
@@ -462,12 +462,24 @@ export default function DateThemeApp() {
 
             {/* 더 재밌게 하려면? */}
             {result.funTip && (
-              <div style={{ borderRadius: 24, padding: "28px", background: "linear-gradient(135deg, #E8F3FF 0%, #F2F8FF 100%)", marginBottom: 32, border: "1px solid #D4E9FF" }}>
+              <div style={{ borderRadius: 24, padding: "28px", background: "linear-gradient(135deg, #E8F3FF 0%, #F2F8FF 100%)", marginBottom: 16, border: "1px solid #D4E9FF" }}>
                 <p style={{ fontSize: 13, fontWeight: 800, color: "#3182F6", marginBottom: 12, display: "flex", alignItems: "center", gap: 6, textTransform: "uppercase", letterSpacing: "0.5px" }}>
                   <span>✨</span> More Fun
                 </p>
                 <p style={{ fontSize: 15, color: "#333D4B", fontWeight: 600, lineHeight: 1.7, margin: 0, wordBreak: "keep-all" }}>
                   {result.funTip}
+                </p>
+              </div>
+            )}
+
+            {/* 엉뚱한 아이디어 (randomTwist) */}
+            {result.randomTwist && (
+              <div style={{ borderRadius: 24, padding: "28px", background: "#FFF0F6", marginBottom: 32, border: "1px solid #FFD6E7" }}>
+                <p style={{ fontSize: 13, fontWeight: 800, color: "#F06595", marginBottom: 12, display: "flex", alignItems: "center", gap: 6, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                  <span>🎲</span> 여기에 이걸 추가하면 더 재밌어짐!
+                </p>
+                <p style={{ fontSize: 15, color: "#C2255C", fontWeight: 600, lineHeight: 1.7, margin: 0, wordBreak: "keep-all" }}>
+                  {result.randomTwist}
                 </p>
               </div>
             )}
