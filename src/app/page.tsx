@@ -275,7 +275,7 @@ export default function DateThemeApp() {
               ))}
             </div>
             <button className="roll-btn" onClick={() => setStep("profile")}>시작하기</button>
-            <p style={{ textAlign: "center", color: "#ADB5BD", fontSize: 12, marginTop: 16 }}>v2.2.0</p>
+            <p style={{ textAlign: "center", color: "#ADB5BD", fontSize: 12, marginTop: 16 }}>v2.3.0</p>
           </div>
         )}
 
@@ -377,11 +377,6 @@ export default function DateThemeApp() {
                 ))}
               </div>
             </div>
-            <button className="roll-btn" onClick={() => setStep("stamina")}>다음</button>
-            <button className="roll-btn" style={{ background: "none", color: "#8B95A1", marginTop: 12 }} onClick={() => setStep("taste")}>이전으로</button>
-          </div>
-        )}
-
             <button className="roll-btn" onClick={rollTheme}>테마 설계하기</button>
             <button className="roll-btn" style={{ background: "none", color: "#8B95A1", marginTop: 12 }} onClick={() => setStep("taste")}>이전으로</button>
           </div>
