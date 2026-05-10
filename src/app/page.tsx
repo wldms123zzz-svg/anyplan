@@ -253,7 +253,7 @@ export default function DateThemeApp() {
             <h1 style={{ fontSize: 28, fontWeight: 700, lineHeight: 1.3 }}>누군가와 함께하는 오늘,<br />어떤 풍경을 담고 싶나요? ✨</h1>
           ) : step !== "result" ? (
             <div style={{ display: "flex", gap: 6 }}>
-              {["profile", "taste", "condition"].map((s, i) => (
+              {["profile", "taste", "condition", "stamina"].map((s, i) => (
                 <div key={i} style={{ width: 8, height: 8, borderRadius: "50%", background: step === s ? "#3182F6" : "#D1D6DB" }} />
               ))}
             </div>
@@ -310,7 +310,7 @@ export default function DateThemeApp() {
 
         {step === "condition" && (
           <div className="fade-up">
-            <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 24 }}>장소 및 예산</h2>
+            <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 24 }}>마지막으로, 환경을 알려주세요</h2>
             <div style={{ marginBottom: 32 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                 <p style={{ fontSize: 14, fontWeight: 600, color: "#4E5968", margin: 0 }}>지역</p>
@@ -343,8 +343,37 @@ export default function DateThemeApp() {
                 ))}
               </div>
             </div>
-            <button className="roll-btn" disabled={!condition.지역 || !condition.예산} onClick={rollTheme}>테마 뽑기</button>
+            <button className="roll-btn" onClick={() => setStep("stamina")}>다음</button>
             <button className="roll-btn" style={{ background: "none", color: "#8B95A1", marginTop: 12 }} onClick={() => setStep("taste")}>이전으로</button>
+          </div>
+        )}
+
+        {step === "stamina" && (
+          <div className="fade-up">
+            <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 24 }}>오늘 우리의 체력은 어떤가요?</h2>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 32 }}>
+              {[
+                { id: "에너자이저", title: "🔋 에너자이저", desc: "하루 종일 걸어도 지치지 않아요" },
+                { id: "보통", title: "🙂 보통", desc: "적당히 걷고 적당히 쉬고 싶어요" },
+                { id: "종이인형", title: "🪫 종이인형", desc: "최대한 덜 걷고 푹 쉬는 게 최고예요" }
+              ].map(v => (
+                <button 
+                  key={v.id} 
+                  style={{ 
+                    textAlign: "left", padding: "20px", borderRadius: "16px", 
+                    border: condition.체력 === v.id ? "2px solid #3182F6" : "1px solid #E5E8EB",
+                    background: condition.체력 === v.id ? "#F2F8FF" : "#FFF",
+                    transition: "all 0.2s"
+                  }}
+                  onClick={() => setCond("체력", v.id)}
+                >
+                  <p style={{ fontSize: 17, fontWeight: 700, margin: "0 0 4px 0", color: condition.체력 === v.id ? "#3182F6" : "#191F28" }}>{v.title}</p>
+                  <p style={{ fontSize: 14, color: "#6B7684", margin: 0 }}>{v.desc}</p>
+                </button>
+              ))}
+            </div>
+            <button className="roll-btn" onClick={rollTheme}>테마 설계하기</button>
+            <button className="roll-btn" style={{ background: "none", color: "#8B95A1", marginTop: 12 }} onClick={() => setStep("condition")}>이전으로</button>
           </div>
         )}
 
@@ -423,15 +452,38 @@ export default function DateThemeApp() {
               </p>
             </div>
 
-            {/* 더 재미있게 즐기려면? (돌발 미션) */}
-            <div style={{ borderRadius: 20, padding: "24px", background: "linear-gradient(135deg, #E8F3FF 0%, #D0E6FF 100%)", marginBottom: 32, boxShadow: "0 4px 12px rgba(49, 130, 246, 0.1)" }}>
-              <p style={{ fontSize: 13, fontWeight: 700, color: "#1B64DA", marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
-                <span>✨</span> 한 끗 차이의 특별함
-              </p>
-              <p style={{ fontSize: 16, color: "#1B64DA", fontWeight: 700, lineHeight: 1.6, margin: 0 }}>
-                {result.randomTwist}
-              </p>
-            </div>
+            {/* 주변 추천 장소 섹션 */}
+            {result.nearby && result.nearby.length > 0 && (
+              <div style={{ marginBottom: 32 }}>
+                <p style={{ fontSize: 14, fontWeight: 700, color: "#191F28", marginBottom: 16, paddingLeft: 4 }}>근처 함께 가볼 만한 곳 📍</p>
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  {result.nearby.map((place: any, i: number) => (
+                    <div key={i} style={{ background: "#FFF", padding: "16px", borderRadius: "16px", display: "flex", justifyContent: "space-between", alignItems: "center", border: "1px solid #F2F4F6" }}>
+                      <div>
+                        <p style={{ fontSize: 15, fontWeight: 700, color: "#333D4B", margin: "0 0 2px 0" }}>{place.name}</p>
+                        <p style={{ fontSize: 13, color: "#8B95A1", margin: 0 }}>{place.type} · {place.reason}</p>
+                      </div>
+                      <span style={{ fontSize: 20 }}>{place.emoji}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 다음을 위한 테마 (예약 장소 포함) */}
+            {result.nextTheme && (
+              <div style={{ borderRadius: 20, padding: "24px", background: "#F9FAFB", marginBottom: 32, border: "1px solid #E5E8EB" }}>
+                <p style={{ fontSize: 12, fontWeight: 700, color: "#8B95A1", marginBottom: 8, textTransform: "uppercase" }}>Next Journey Plan 🗓️</p>
+                <h4 style={{ fontSize: 17, fontWeight: 700, color: "#333D4B", marginBottom: 12 }}>{result.nextTheme.title}</h4>
+                <p style={{ fontSize: 14, color: "#4E5968", lineHeight: 1.5, marginBottom: 16 }}>{result.nextTheme.desc}</p>
+                {result.nextTheme.isReservationRequired && (
+                  <div style={{ background: "#FFF", padding: "12px 16px", borderRadius: "12px", border: "1px dashed #3182F6", display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ fontSize: 14 }}>🔔</span>
+                    <p style={{ fontSize: 13, color: "#3182F6", fontWeight: 600, margin: 0 }}>이곳은 미리 예약이 필요한 장소예요.</p>
+                  </div>
+                )}
+              </div>
+            )}
 
             <div style={{ display: "flex", gap: 12, marginBottom: 40 }}>
               <button className="roll-btn" style={{ background: "#E5E8EB", color: "#4E5968", flex: 1 }} onClick={reset}>처음으로</button>
