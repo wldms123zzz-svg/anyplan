@@ -518,7 +518,6 @@ export default function DateThemeApp() {
               borderTopLeftRadius: 24, borderTopRightRadius: 24,
               padding: "32px 24px", minHeight: "60vh", maxHeight: "85vh",
               overflowY: "auto", 
-              version: "2.2.0",
               animation: "slideUp 0.3s ease-out"
             }}
             onClick={e => e.stopPropagation()}
