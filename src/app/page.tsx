@@ -117,7 +117,12 @@ export default function DateThemeApp() {
   };
 
   const reset = () => {
-    triggerHaptic(); setStep("start"); setTaste({ 무드: [], 활동: [] }); setCondition({ myBody: "", partnerBody: "", 예산: "", 지역: "전국", mode: "", 이동수단: "" }); setResult(null); setErrorMsg("");
+    triggerHaptic(); 
+    setStep("start"); 
+    setTaste({ 무드: [], 활동: [] }); 
+    setCondition({ 지역: "전국", 예산: "적당히", 이동수단: "대중교통", 체력: "보통" }); 
+    setResult(null); 
+    setErrorMsg("");
   };
 
   const fetchFestivals = async (month?: number) => {
@@ -270,7 +275,7 @@ export default function DateThemeApp() {
               ))}
             </div>
             <button className="roll-btn" onClick={() => setStep("profile")}>시작하기</button>
-            <p style={{ textAlign: "center", color: "#ADB5BD", fontSize: 12, marginTop: 16 }}>v1.6.0</p>
+            <p style={{ textAlign: "center", color: "#ADB5BD", fontSize: 12, marginTop: 16 }}>v1.7.0</p>
           </div>
         )}
 
