@@ -103,14 +103,18 @@ export async function POST(request: Request) {
       "desc": "01 [장소의 특성과 구체적 행동이 결합된 담백한 묘사]"
     }
   ],
+  "funTip": "장소를 200% 즐기는 감각적인 팁 (예: 특정 플레이리스트 듣기, 특정 각도에서 바라보기 등)",
+  "talkTopic": "그 장소에서 나누기 좋은 깊은 질문 (랜덤하게 생성)",
   "duration": "소요 시간",
   "bestTime": "추천 시간대",
   "transportInfo": "이동/주차 팁",
-  "talkTopic": "그 장소에서 나누기 좋은 깊은 질문",
   "randomTwist": "그날을 완성할 작고 감각적인 미션",
   "nearby": [{ "name": "장소명", "type": "카페/음식점", "reason": "이유", "emoji": "아이콘" }],
   "nextTheme": { "title": "다음 테마", "desc": "설명", "isReservationRequired": true/false }
 }
+
+[funTip 설계 예시]
+- "스마트폰으로 사극 영화(예: '관상' 또는 '왕의 남자')의 OST 플레이리스트를 찾아 작게 틀어보세요. 고적한 고분의 분위기와 합쳐져 방금 막 역사 영화 세트장에 들어온 듯한 감동이 몰려옵니다."
 
 반드시 JSON 객체만 반환하세요.`;
 

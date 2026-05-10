@@ -31,12 +31,14 @@ export default function DateThemeApp() {
     theme: string;
     emoji: string;
     desc: string;
-    vibe: string;
-    doThis: string[];
+    vibe: string[];
+    doThis: { title: string; desc: string }[];
+    funTip?: string;
     transportInfo?: string;
     talkTopic: string;
     randomTwist: string;
-    perfectFor: string;
+    nearby: any[];
+    nextTheme: any;
   } | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadingText, setLoadingText] = useState("AI가 결과 찾는 중...");
@@ -275,7 +277,7 @@ export default function DateThemeApp() {
               ))}
             </div>
             <button className="roll-btn" onClick={() => setStep("profile")}>시작하기</button>
-            <p style={{ textAlign: "center", color: "#ADB5BD", fontSize: 12, marginTop: 16 }}>v2.3.0</p>
+            <p style={{ textAlign: "center", color: "#ADB5BD", fontSize: 12, marginTop: 16 }}>v2.5.0</p>
           </div>
         )}
 
@@ -448,14 +450,27 @@ export default function DateThemeApp() {
             </div>
 
             {/* 오늘의 대화 주제 */}
-            <div style={{ borderRadius: 20, padding: "24px", background: "#FFFFFF", marginBottom: 16, boxShadow: "0 4px 12px rgba(0,0,0,0.03)", border: "1px solid #F2F4F6" }}>
-              <p style={{ fontSize: 13, fontWeight: 700, color: "#3182F6", marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
-                <span>💬</span> 오늘의 대화 주제
+            <div style={{ borderRadius: 24, padding: "28px", background: "#FFFFFF", marginBottom: 16, boxShadow: "0 8px 24px rgba(0,0,0,0.04)", border: "1px solid #F2F4F6", position: "relative", overflow: "hidden" }}>
+              <div style={{ position: "absolute", top: 0, left: 0, width: "4px", height: "100%", background: "#3182F6" }} />
+              <p style={{ fontSize: 13, fontWeight: 800, color: "#3182F6", marginBottom: 12, display: "flex", alignItems: "center", gap: 6, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                <span>💬</span> Today's Topic
               </p>
-              <p style={{ fontSize: 16, color: "#333D4B", fontWeight: 600, lineHeight: 1.6, margin: 0 }}>
+              <p style={{ fontSize: 18, color: "#191F28", fontWeight: 700, lineHeight: 1.6, margin: 0, wordBreak: "keep-all" }}>
                 "{result.talkTopic}"
               </p>
             </div>
+
+            {/* 더 재밌게 하려면? */}
+            {result.funTip && (
+              <div style={{ borderRadius: 24, padding: "28px", background: "linear-gradient(135deg, #E8F3FF 0%, #F2F8FF 100%)", marginBottom: 32, border: "1px solid #D4E9FF" }}>
+                <p style={{ fontSize: 13, fontWeight: 800, color: "#3182F6", marginBottom: 12, display: "flex", alignItems: "center", gap: 6, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                  <span>✨</span> More Fun
+                </p>
+                <p style={{ fontSize: 15, color: "#333D4B", fontWeight: 600, lineHeight: 1.7, margin: 0, wordBreak: "keep-all" }}>
+                  {result.funTip}
+                </p>
+              </div>
+            )}
 
             {/* 주변 추천 장소 섹션 */}
             {result.nearby && result.nearby.length > 0 && (
