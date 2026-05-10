@@ -64,36 +64,47 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   const body = await request.json();
-  const { taste, condition, trails } = body;
+  const { profile, taste, condition, trails } = body;
   const geminiKey = process.env.GEMINI_API_KEY;
 
   try {
-    const prompt = `
-      당신은 MZ 힙한 데이트 디렉터입니다.
-      지역(${condition.지역}), 취향(${taste.무드}, ${taste.활동}), 이동수단(${condition.이동수단}) 기반.
-      산책길 참고: ${JSON.stringify(trails?.slice(0, 5))}
-      
-      지침:
-      1. 이동수단이 '뚜벅이'면 대중교통(지하철역, 출구 번호 등) 위주로 안내하세요.
-      2. 이동수단이 '자차'면 주차장(무료/유료 주차장 명칭 및 팁) 정보를 필수 포함하세요.
-      3. 두루누비 산책길 중 하나를 골라 코스에 힙하게 녹여내세요.
-      4. 인스타 핫플 감성 유지. 강조 표시(**) 금지. 성수동 언급 금지.
-      5. randomTwist(미션)은 단순히 '사진 찍기'가 아니라, '서로의 30초 초상화 그려주기', '가장 마음에 드는 소품 하나 사주기', '동네에서 가장 오래되어 보이는 간판 찾기', '특이한 모양의 나뭇잎 줍기' 등 구체적이고 활동적인 미션을 1개 제안하세요.
-      
-      JSON 응답:
-      {
-        "theme": "코스 제목",
-        "emoji": "이모지",
-        "vibe": ["#해시태그"],
-        "desc": "한 줄 감성",
-        "doThis": ["활동1", "활동2", "활동3"],
-        "transportInfo": "대중교통 상세(출구번호 등) 혹은 주차장 상세 정보",
-        "talkTopic": "대화 주제",
-        "randomTwist": "구체적이고 재미있는 미션 (활동 위주)",
-        "perfectFor": "추천 대상",
-        "nextDate": { "place": "다음 핫플", "reason": "이유", "emoji": "이모지" }
-      }
-    `;
+    const prompt = `당신은 사용자가 "기억하게 될 하루의 감정과 장면"을 설계하는 로컬 문화 경험 큐레이터입니다.
+절대 장소를 단순 나열하지 마세요. "어떤 분위기와 감정을 경험하게 되는가"를 중심으로 구성하세요.
+
+[핵심 원칙]
+1. 관광앱 말투 금지: '핫플', '인생샷', '맛집 투어', '꼭 가봐야 할' 같은 SNS 광고형 표현은 절대 사용하지 마세요.
+2. 장면 중심 묘사: "카페 방문하기" 대신 "철길 옆 폐건물을 개조한 카페에서 해 질 무렵 필름사진 찍기"처럼 사용자가 공간 안에 있는 것처럼 느껴지게 작성하세요.
+3. 감각 묘사: 빛, 공기, 바람, 노을, 냄새, 파도소리, 질감, 시간의 흔적 등을 적극 활용하세요.
+4. 구체적 행동 설계: "산책하기" 대신 "오래된 돌담길의 거친 질감을 손끝으로 느끼며 천천히 산책하기"처럼 디테일한 행동을 지시하세요.
+5. 영화적 문체: 문장은 과장되지 않게, 조용하고 영화적인 분위기로 작성하세요. (단, 너무 오글거리지 않게)
+
+[입력 정보]
+- 지역: ${condition.지역}
+- 동행: ${profile.myAge}대와 ${profile.partnerAge}대
+- 취향: ${taste.무드.join(", ")}, ${taste.활동.join(", ")}
+- 이동수단: ${condition.이동수단}
+- 로컬 산책 데이터: ${JSON.stringify(trails?.slice(0, 3))}
+
+[출력 형식 (JSON 전용)]
+{
+  "theme": "지역과 분위기가 드러나는 영화 제목 같은 이름",
+  "desc": "그날 전체의 감정과 분위기를 설명하는 한 줄",
+  "emoji": "분위기를 대변하는 아이콘",
+  "vibe": ["#감성키워드1", "#감성키워드2", "#감성키워드3"],
+  "doThis": [
+    {
+      "title": "공간과 행동이 결합된 제목",
+      "desc": "공간 설명, 행동, 감각 묘사, 분위기가 포함된 영화적인 설명 (2~3문장)"
+    }
+  ],
+  "transportInfo": "이동수단 추천 및 주차/출구 정보",
+  "duration": "예상 소요 시간",
+  "bestTime": "추천 시간대 (예: 해 질 무렵, 늦은 밤)",
+  "talkTopic": "공간과 분위기에 어울리는 사유 깊은 대화 주제",
+  "randomTwist": "그날의 감정을 완성할 구체적이고 감각적인 미션"
+}
+
+반드시 JSON 객체만 반환하세요.`;
 
     const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`, {
       method: "POST",
@@ -105,11 +116,11 @@ export async function POST(request: Request) {
     let text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     let cleanText = jsonMatch ? jsonMatch[0] : text;
-    cleanText = cleanText.replace(/\*\*/g, "");
-
+    
     return NextResponse.json(JSON.parse(cleanText), { headers: corsHeaders });
   } catch (e: any) {
-    return NextResponse.json({ error: "연결 오류가 발생했습니다." }, { status: 500, headers: corsHeaders });
+    console.error("Gemini POST Error:", e);
+    return NextResponse.json({ error: "테마를 생성하는 중 오류가 발생했습니다." }, { status: 500, headers: corsHeaders });
   }
 }
 

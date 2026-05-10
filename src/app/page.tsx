@@ -350,68 +350,92 @@ export default function DateThemeApp() {
 
         {step === "result" && result && (
           <div className="fade-up">
-            <div style={{ background: "#FFF", borderRadius: 24, overflow: "hidden", boxShadow: "0 4px 16px rgba(0,0,0,0.04)", marginBottom: 20 }}>
-              <div style={{ padding: 32, background: "#F9FAFB" }}>
-                <div style={{ fontSize: 56, marginBottom: 16 }}>{result.emoji}</div>
-                <h2 style={{ fontSize: 26, fontWeight: 700, marginBottom: 10 }}>{result.theme}</h2>
-                <p style={{ color: "#4E5968", lineHeight: 1.6, marginBottom: 16 }}>{result.desc}</p>
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  {result.vibe.map(v => <span key={v} style={{ color: "#3182F6", fontWeight: 600 }}>{v}</span>)}
+            <div style={{ background: "#FFF", borderRadius: 24, overflow: "hidden", boxShadow: "0 4px 20px rgba(0,0,0,0.06)", marginBottom: 20 }}>
+              <div style={{ padding: 40, background: "linear-gradient(135deg, #F9FAFB 0%, #F3F4F6 100%)", textAlign: "center" }}>
+                <div style={{ fontSize: 64, marginBottom: 20 }}>{result.emoji}</div>
+                <h2 style={{ fontSize: 28, fontWeight: 800, marginBottom: 12, color: "#191F28", letterSpacing: "-0.5px" }}>{result.theme}</h2>
+                <p style={{ color: "#4E5968", fontSize: 16, lineHeight: 1.6, marginBottom: 20, fontWeight: 500 }}>{result.desc}</p>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
+                  {result.vibe.map(v => <span key={v} style={{ color: "#3182F6", background: "#FFF", padding: "6px 14px", borderRadius: "20px", fontSize: 14, fontWeight: 600, boxShadow: "0 2px 6px rgba(0,0,0,0.05)" }}>{v}</span>)}
                 </div>
               </div>
-              <div style={{ padding: 24 }}>
+              
+              <div style={{ padding: "32px 24px" }}>
                 {result.transportInfo && (
-                  <div style={{ background: "#F2F4F6", padding: "16px 20px", borderRadius: "16px", marginBottom: 24, display: "flex", alignItems: "flex-start", gap: 12, border: "1px solid #E5E8EB" }}>
-                    <span style={{ fontSize: 20 }}>{condition.이동수단?.includes("자차") ? "🚗" : "🚌"}</span>
-                    <p style={{ fontSize: 14, color: "#4E5968", fontWeight: 500, margin: 0, lineHeight: 1.5 }}>{result.transportInfo}</p>
+                  <div style={{ background: "#F2F4F6", padding: "18px 20px", borderRadius: "20px", marginBottom: 32, display: "flex", alignItems: "flex-start", gap: 14, border: "1px solid #E5E8EB" }}>
+                    <span style={{ fontSize: 22 }}>{condition.이동수단?.includes("자차") ? "🚗" : "🚌"}</span>
+                    <div>
+                      <p style={{ fontSize: 14, color: "#4E5968", fontWeight: 600, margin: "0 0 4px 0" }}>이동 가이드</p>
+                      <p style={{ fontSize: 14, color: "#6B7684", margin: 0, lineHeight: 1.5 }}>{result.transportInfo}</p>
+                    </div>
                   </div>
                 )}
-                <p style={{ fontSize: 13, fontWeight: 600, color: "#8B95A1", marginBottom: 16 }}>코스 안내</p>
-                {result.doThis.map((item, i) => (
-                  <div key={i} style={{ display: "flex", gap: 20, marginBottom: 28, alignItems: "flex-start" }}>
+
+                <div style={{ display: "flex", gap: 12, marginBottom: 40 }}>
+                  <div style={{ flex: 1, background: "#F9FAFB", padding: 16, borderRadius: 16, textAlign: "center" }}>
+                    <p style={{ fontSize: 12, color: "#8B95A1", fontWeight: 600, marginBottom: 4 }}>소요 시간</p>
+                    <p style={{ fontSize: 15, color: "#333D4B", fontWeight: 700, margin: 0 }}>{result.duration || "약 4시간"}</p>
+                  </div>
+                  <div style={{ flex: 1, background: "#F9FAFB", padding: 16, borderRadius: 16, textAlign: "center" }}>
+                    <p style={{ fontSize: 12, color: "#8B95A1", fontWeight: 600, marginBottom: 4 }}>추천 시간</p>
+                    <p style={{ fontSize: 15, color: "#333D4B", fontWeight: 700, margin: 0 }}>{result.bestTime || "오후 무렵"}</p>
+                  </div>
+                </div>
+
+                <p style={{ fontSize: 14, fontWeight: 700, color: "#191F28", marginBottom: 24, paddingLeft: 4 }}>오늘의 장면들</p>
+                
+                {result.doThis.map((item: any, i: number) => (
+                  <div key={i} style={{ display: "flex", gap: 20, marginBottom: 36, alignItems: "flex-start" }}>
                     <div style={{
                       color: "#3182F6",
-                      fontSize: 14,
-                      fontWeight: 900,
-                      fontFamily: "monospace",
+                      fontSize: 13,
+                      fontWeight: 800,
                       background: "#E8F3FF",
-                      width: 36,
-                      height: 36,
-                      borderRadius: "50%",
+                      width: 32,
+                      height: 32,
+                      borderRadius: "10px",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      flexShrink: 0
+                      flexShrink: 0,
+                      marginTop: 2
                     }}>
-                      {String(i + 1).padStart(2, "0")}
+                      {i + 1}
                     </div>
-                    <span style={{ color: "#333D4B", fontSize: 16, lineHeight: 1.65, fontWeight: 500, wordBreak: "keep-all", paddingTop: 6 }}>
-                      {item.replace(/^\d+\s*/, '')}
-                    </span>
+                    <div>
+                      <h3 style={{ fontSize: 17, fontWeight: 700, color: "#333D4B", marginBottom: 8, lineHeight: 1.4 }}>{item.title}</h3>
+                      <p style={{ color: "#6B7684", fontSize: 15, lineHeight: 1.7, margin: 0, wordBreak: "keep-all" }}>
+                        {item.desc}
+                      </p>
+                    </div>
                   </div>
                 ))}
               </div>
             </div>
 
             {/* 오늘의 대화 주제 */}
-            <div style={{ borderRadius: 16, padding: "20px 24px", background: "#FFFFFF", marginBottom: 12, boxShadow: "0 2px 8px rgba(0,0,0,0.02)" }}>
-              <p style={{ fontSize: 13, fontWeight: 600, color: "#8B95A1", marginBottom: 8 }}>오늘의 대화 주제 💬</p>
-              <p style={{ fontSize: 15, color: "#333D4B", fontWeight: 500, lineHeight: 1.5, margin: 0 }}>
-                {result.talkTopic}
+            <div style={{ borderRadius: 20, padding: "24px", background: "#FFFFFF", marginBottom: 16, boxShadow: "0 4px 12px rgba(0,0,0,0.03)", border: "1px solid #F2F4F6" }}>
+              <p style={{ fontSize: 13, fontWeight: 700, color: "#3182F6", marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
+                <span>💬</span> 오늘의 대화 주제
+              </p>
+              <p style={{ fontSize: 16, color: "#333D4B", fontWeight: 600, lineHeight: 1.6, margin: 0 }}>
+                "{result.talkTopic}"
               </p>
             </div>
 
             {/* 더 재미있게 즐기려면? (돌발 미션) */}
-            <div style={{ borderRadius: 16, padding: "20px 24px", background: "#E8F3FF", marginBottom: 24, border: "1px solid #D0E6FF" }}>
-              <p style={{ fontSize: 13, fontWeight: 600, color: "#3182F6", marginBottom: 8 }}>더 재미있게 즐기려면? ✨</p>
-              <p style={{ fontSize: 15, color: "#1B64DA", fontWeight: 600, lineHeight: 1.5, margin: 0 }}>
+            <div style={{ borderRadius: 20, padding: "24px", background: "linear-gradient(135deg, #E8F3FF 0%, #D0E6FF 100%)", marginBottom: 32, boxShadow: "0 4px 12px rgba(49, 130, 246, 0.1)" }}>
+              <p style={{ fontSize: 13, fontWeight: 700, color: "#1B64DA", marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
+                <span>✨</span> 한 끗 차이의 특별함
+              </p>
+              <p style={{ fontSize: 16, color: "#1B64DA", fontWeight: 700, lineHeight: 1.6, margin: 0 }}>
                 {result.randomTwist}
               </p>
             </div>
 
-            <div style={{ display: "flex", gap: 12 }}>
-              <button className="roll-btn" style={{ background: "#E5E8EB", color: "#4E5968" }} onClick={reset}>처음으로</button>
-              <button className="roll-btn" onClick={rollTheme}>다시 뽑기</button>
+            <div style={{ display: "flex", gap: 12, marginBottom: 40 }}>
+              <button className="roll-btn" style={{ background: "#E5E8EB", color: "#4E5968", flex: 1 }} onClick={reset}>처음으로</button>
+              <button className="roll-btn" style={{ flex: 2 }} onClick={rollTheme}>다시 설계하기</button>
             </div>
           </div>
         )}
