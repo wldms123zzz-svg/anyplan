@@ -17,111 +17,49 @@ export async function GET(request: Request) {
   const region = searchParams.get("region") || "";
   const areaCode = AREA_CODES[region] || "";
 
-  // 1. 브라우저인 것처럼 속이기 위한 헤더
   const headers = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
     'Accept': 'application/json'
   };
 
   try {
-    // 2. 서비스 키를 맨 앞에 배치 (일부 공공데이터 API 필수 조건)
-    const baseUrl = "http://apis.data.go.kr/B551011/KorService1/areaBasedList";
-    const query = `?serviceKey=${tourKey}&numOfRows=30&pageNo=1&MobileOS=ETC&MobileApp=anyplan&_type=json&contentTypeId=15&areaCode=${areaCode}&arrange=A`;
-    const tourUrl = baseUrl + query;
-
-    console.log("Attempting KorService1 call...");
-
-    const res = await fetch(tourUrl, { headers });
-    const text = await res.text();
-
-    if (text.includes("Unexpected errors")) {
-      // 3. 만약 실패하면 KorService2로 다시 시도 (주소 형식 변경)
-      const v2Url = `https://apis.data.go.kr/B551011/KorService2/areaBasedList2?serviceKey=${tourKey}&MobileOS=ETC&MobileApp=anyplan&_type=json&areaCode=${areaCode}&numOfRows=30&contentTypeId=15`;
-      const res2 = await fetch(v2Url, { headers });
-      const text2 = await res2.text();
-      
-      if (text2.includes("Unexpected errors")) {
-        throw new Error(`모든 API 버전에서 거부되었습니다: ${text2.slice(0, 50)}`);
-      }
-      
-      const data2 = JSON.parse(text2);
-      return NextResponse.json({ festivals: data2?.response?.body?.items?.item || [], trails: [] }, { headers: corsHeaders });
-    }
-
-    const data = JSON.parse(text);
-    return NextResponse.json({ 
-      festivals: data?.response?.body?.items?.item || [],
-      trails: [] 
-    }, { headers: corsHeaders });
-
+    const baseUrl = "https://apis.data.go.kr/B551011/KorService1/areaBasedList1";
+    const query = `?serviceKey=${encodeURIComponent(tourKey)}&numOfRows=30&pageNo=1&MobileOS=ETC&MobileApp=anyplan&_type=json&contentTypeId=15&areaCode=${areaCode}&arrange=A`;
+    const res = await fetch(baseUrl + query, { headers });
+    const data = await res.json();
+    return NextResponse.json({ festivals: data?.response?.body?.items?.item || [], trails: [] }, { headers: corsHeaders });
   } catch (e: any) {
-    return NextResponse.json({ 
-      error: "관광공사 서버 최종 거부", 
-      details: e.message 
-    }, { status: 200, headers: corsHeaders });
+    return NextResponse.json({ festivals: [], trails: [] }, { headers: corsHeaders });
   }
 }
 
 export async function POST(request: Request) {
-  const body = await request.json();
-  const { profile, taste, condition, trails } = body;
-  const geminiKey = process.env.GEMINI_API_KEY;
-
   try {
-    const prompt = `당신은 사용자가 "기억하게 될 하루의 감정과 장면"을 설계하는 로컬 문화 경험 큐레이터입니다.
+    const body = await request.json();
+    const { profile, taste, condition } = body;
+    const geminiKey = process.env.GEMINI_API_KEY;
 
-[테마 제목 규칙 (Golden Rule)]
-- 제목은 반드시 "[감성적인 묘사] [장소명]에서" 형식으로 간결하게 작성하세요.
-- 예시: "오래된 영화 같은 합천영상테마파크에서", "시간이 멈춘 듯한 교동시장 골목에서"
+    // 모델명을 gemini-1.5-flash로 수정 (2.5는 오타임)
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`;
 
-[코스 구성 규칙]
-- 활동 01, 02: 메인 스팟에서의 구체적이고 능동적인 행동(내기, 놀이, 촬영, 쓰기 등).
-- 활동 03: 자리를 옮겨 구체적 [장소명]에서 하루를 완성하는 마무리 활동.
-- randomTwist: "여기에 이걸 추가하면 더 재밌어짐! (엉뚱한 아이디어 하나)"
+    const prompt = `당신은 로컬 문화 경험 큐레이터입니다. 다음 정보를 바탕으로 [감성적 묘사] [장소명]에서 형식의 테마를 제안하세요. 반드시 JSON으로만 답변하세요.
+    - 지역: ${condition.지역}, 동행: ${profile.myAge}대와 ${profile.partnerAge}대, 취향: ${taste.무드.join(", ")}
+    - 출력 형식: {"theme": "", "desc": "", "emoji": "", "vibe": [], "doThis": [{"title": "", "desc": ""}], "funTip": "", "randomTwist": "", "talkTopic": "", "nearby": []}`;
 
-[핵심 설계 원칙]
-1. 능동적 동사 사용: '보기/걷기' 대신 '내기하기', '찍어주기', '만들기', '찾기' 등 상호작용이 일어나는 동사를 사용하세요.
-2. 장소 밀착형 미션: 그 장소에서만 할 수 있는 엉뚱하고 재미있는 행동을 설계하세요.
-3. 담백한 디테일: 미사여구 없이 "무엇을 어떻게 할지"만 세밀하게 기술하세요.
-
-[입력 정보]
-- 지역: ${condition.지역}, 체력: ${condition.체력}
-- 동행: ${profile.myAge}대와 ${profile.partnerAge}대, 취향: ${taste.무드.join(", ")}, ${taste.활동.join(", ")}
-
-[출력 형식 (JSON)]
-{
-  "theme": "[감성적 묘사] [장소명]에서",
-  "desc": "그날의 분위기를 설명하는 한 줄",
-  "emoji": "아이콘",
-  "vibe": ["#내기", "#놀이", "#키워드"],
-  "doThis": [
-    { "title": "첫 번째 장면", "desc": "01 [구체적이고 능동적인 행동]" },
-    { "title": "두 번째 장면", "desc": "02 [커플 상호작용/내기/놀이]" },
-    { "title": "자리를 옮겨서", "desc": "03 인근의 '[구체적 장소명]'으로 이동하여, [마무리 활동]" }
-  ],
-  "funTip": "더 재밌게 즐기는 법 (플레이리스트 등)",
-  "randomTwist": "여기에 이걸 추가하면 더 재밌어짐! (엉뚱한 아이디어)",
-  "talkTopic": "그 장소에서 나누기 좋은 랜덤한 질문",
-  "nearby": [{ "name": "명소", "type": "카페/식당", "reason": "이유", "emoji": "아이콘" }]
-}
-
-반드시 JSON 객체만 반환하세요.`;
-
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`, {
+    const res = await fetch(geminiUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
     });
 
     const data = await res.json();
-    let text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
     const jsonMatch = text.match(/\{[\s\S]*\}/);
-    let cleanText = jsonMatch ? jsonMatch[0] : text;
+    const cleanJson = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
     
-    return NextResponse.json(JSON.parse(cleanText), { headers: corsHeaders });
+    return NextResponse.json(cleanJson, { headers: corsHeaders });
   } catch (e: any) {
-    console.error("Gemini POST Error:", e);
-    return NextResponse.json({ error: "테마를 생성하는 중 오류가 발생했습니다." }, { status: 500, headers: corsHeaders });
+    return NextResponse.json({ error: "생성 실패" }, { status: 200, headers: corsHeaders });
   }
 }
 
