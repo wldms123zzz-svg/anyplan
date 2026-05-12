@@ -12,7 +12,6 @@ const TAGS = {
   이동수단: ["뚜벅이 데이트 🚶‍♀️", "자차 데이트 🚗"],
 };
 
-// API 프록시 서버 주소 (Vercel 배포 후 해당 URL로 변경 필요)
 const BASE_API_URL = "https://anyplan-gamma.vercel.app";
 
 export default function DateThemeApp() {
@@ -26,6 +25,7 @@ export default function DateThemeApp() {
     지역: string;
     mode: string;
     이동수단: string;
+    체력?: string;
   }>({ myBody: "", partnerBody: "", 예산: "", 지역: "전국", mode: "", 이동수단: "" });
   const [result, setResult] = useState<{
     theme: string;
@@ -39,6 +39,8 @@ export default function DateThemeApp() {
     randomTwist: string;
     nearby: any[];
     nextTheme: any;
+    duration?: string;
+    bestTime?: string;
   } | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadingText, setLoadingText] = useState("AI가 결과 찾는 중...");
@@ -67,7 +69,6 @@ export default function DateThemeApp() {
     const sharedData = params.get("data");
     if (sharedData) {
       try {
-        // 안전하게 데이터 디코딩 및 파싱
         const jsonString = decodeURIComponent(sharedData.replace(/\+/g, " "));
         const parsed = JSON.parse(jsonString);
         if (parsed && parsed.theme) {
@@ -80,7 +81,6 @@ export default function DateThemeApp() {
     }
   }, []);
 
-  // 배너 광고 아이디
   const AD_GROUP_ID = "ait.v2.live.0cdc8d469958499a";
 
   useEffect(() => {
@@ -122,7 +122,7 @@ export default function DateThemeApp() {
     triggerHaptic(); 
     setStep("start"); 
     setTaste({ 무드: [], 활동: [] }); 
-    setCondition({ 지역: "전국", 예산: "적당히", 이동수단: "대중교통", 체력: "보통" }); 
+    setCondition({ 지역: "전국", 예산: "적당히", 이동수단: "대중교통", 체력: "보통", myBody: "", partnerBody: "", mode: "" }); 
     setResult(null); 
     setErrorMsg("");
   };
@@ -145,7 +145,6 @@ export default function DateThemeApp() {
       setFestivals(data.festivals || []);
       const trails = data.trails || [];
 
-      // 2단계: AI 코스 생성 요청 (이동수단 포함)
       const res = await fetch(`${BASE_API_URL}/api/proxy`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -170,7 +169,6 @@ export default function DateThemeApp() {
     if (loading) return;
     triggerHaptic(); setLoading(true); setErrorMsg("");
     try {
-      // 1. 데이터 정제 (불필요한 참조 제거)
       const payload = JSON.parse(JSON.stringify({ profile, taste, condition }));
       const PROXY_URL = `${BASE_API_URL}/api/proxy`;
       console.log("Requesting AI theme from:", PROXY_URL, "with payload:", payload);
@@ -181,7 +179,6 @@ export default function DateThemeApp() {
         body: JSON.stringify(payload)
       });
 
-      // 최소 로딩 시간과 실제 요청 병렬 실행
       const [res] = await Promise.all([
         fetchPromise,
         new Promise(resolve => setTimeout(resolve, 1500))
@@ -201,7 +198,6 @@ export default function DateThemeApp() {
     } catch (err: any) {
       console.error("Critical Error:", err);
       let msg = err.name === "TypeError" ? "네트워크 연결 오류 (CORS/URL)" : (err.message || "알 수 없는 오류");
-      // 특정 브라우저 에러 메시지 한글화 및 우회 안내
       if (msg.includes("expected pattern") || msg.includes("Failed to fetch")) {
         msg = "연결이 원활하지 않습니다. 잠시 후 '테마 뽑기'를 다시 눌러주세요.";
       }
@@ -392,7 +388,8 @@ export default function DateThemeApp() {
                 <h2 style={{ fontSize: 28, fontWeight: 800, marginBottom: 12, color: "#191F28", letterSpacing: "-0.5px" }}>{result.theme}</h2>
                 <p style={{ color: "#4E5968", fontSize: 16, lineHeight: 1.6, marginBottom: 20, fontWeight: 500 }}>{result.desc}</p>
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
-                  {result.vibe.map(v => <span key={v} style={{ color: "#3182F6", background: "#FFF", padding: "6px 14px", borderRadius: "20px", fontSize: 14, fontWeight: 600, boxShadow: "0 2px 6px rgba(0,0,0,0.05)" }}>{v}</span>)}
+                  {/* 구조: vibe 배열 결측 시의 예외 처리 || [] 적용 */}
+                  {(result.vibe || []).map(v => <span key={v} style={{ color: "#3182F6", background: "#FFF", padding: "6px 14px", borderRadius: "20px", fontSize: 14, fontWeight: 600, boxShadow: "0 2px 6px rgba(0,0,0,0.05)" }}>{v}</span>)}
                 </div>
               </div>
               
@@ -420,7 +417,8 @@ export default function DateThemeApp() {
 
                 <p style={{ fontSize: 14, fontWeight: 700, color: "#191F28", marginBottom: 24, paddingLeft: 4 }}>오늘의 장면들</p>
                 
-                {result.doThis.map((item: any, i: number) => (
+                {/* 구조: doThis 배열 결측 시의 예외 처리 || [] 적용 */}
+                {(result.doThis || []).map((item: any, i: number) => (
                   <div key={i} style={{ display: "flex", gap: 20, marginBottom: 36, alignItems: "flex-start" }}>
                     <div style={{
                       color: "#3182F6",
@@ -449,7 +447,6 @@ export default function DateThemeApp() {
               </div>
             </div>
 
-            {/* 오늘의 대화 주제 */}
             <div style={{ borderRadius: 24, padding: "28px", background: "#FFFFFF", marginBottom: 16, boxShadow: "0 8px 24px rgba(0,0,0,0.04)", border: "1px solid #F2F4F6", position: "relative", overflow: "hidden" }}>
               <div style={{ position: "absolute", top: 0, left: 0, width: "4px", height: "100%", background: "#3182F6" }} />
               <p style={{ fontSize: 13, fontWeight: 800, color: "#3182F6", marginBottom: 12, display: "flex", alignItems: "center", gap: 6, textTransform: "uppercase", letterSpacing: "0.5px" }}>
@@ -460,7 +457,6 @@ export default function DateThemeApp() {
               </p>
             </div>
 
-            {/* 더 재밌게 하려면? */}
             {result.funTip && (
               <div style={{ borderRadius: 24, padding: "28px", background: "linear-gradient(135deg, #E8F3FF 0%, #F2F8FF 100%)", marginBottom: 16, border: "1px solid #D4E9FF" }}>
                 <p style={{ fontSize: 13, fontWeight: 800, color: "#3182F6", marginBottom: 12, display: "flex", alignItems: "center", gap: 6, textTransform: "uppercase", letterSpacing: "0.5px" }}>
@@ -472,7 +468,6 @@ export default function DateThemeApp() {
               </div>
             )}
 
-            {/* 엉뚱한 아이디어 (randomTwist) */}
             {result.randomTwist && (
               <div style={{ borderRadius: 24, padding: "28px", background: "#FFF0F6", marginBottom: 32, border: "1px solid #FFD6E7" }}>
                 <p style={{ fontSize: 13, fontWeight: 800, color: "#F06595", marginBottom: 12, display: "flex", alignItems: "center", gap: 6, textTransform: "uppercase", letterSpacing: "0.5px" }}>
@@ -484,12 +479,12 @@ export default function DateThemeApp() {
               </div>
             )}
 
-            {/* 주변 추천 장소 섹션 */}
-            {result.nearby && result.nearby.length > 0 && (
+            {/* 구조: nearby 배열 결측 시의 예외 처리 || [] 적용 */}
+            {(result.nearby || []).length > 0 && (
               <div style={{ marginBottom: 32 }}>
                 <p style={{ fontSize: 14, fontWeight: 700, color: "#191F28", marginBottom: 16, paddingLeft: 4 }}>근처 함께 가볼 만한 곳 📍</p>
                 <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                  {result.nearby.map((place: any, i: number) => (
+                  {(result.nearby || []).map((place: any, i: number) => (
                     <div key={i} style={{ background: "#FFF", padding: "16px", borderRadius: "16px", display: "flex", justifyContent: "space-between", alignItems: "center", border: "1px solid #F2F4F6" }}>
                       <div>
                         <p style={{ fontSize: 15, fontWeight: 700, color: "#333D4B", margin: "0 0 2px 0" }}>{place.name}</p>
@@ -502,8 +497,8 @@ export default function DateThemeApp() {
               </div>
             )}
 
-            {/* 다음을 위한 테마 (예약 장소 포함) */}
-            {result.nextTheme && (
+            {/* 구조: nextTheme 객체 속성 참조 안정성 강화 */}
+            {result.nextTheme && result.nextTheme.title && (
               <div style={{ borderRadius: 20, padding: "24px", background: "#F9FAFB", marginBottom: 32, border: "1px solid #E5E8EB" }}>
                 <p style={{ fontSize: 12, fontWeight: 700, color: "#8B95A1", marginBottom: 8, textTransform: "uppercase" }}>Next Journey Plan 🗓️</p>
                 <h4 style={{ fontSize: 17, fontWeight: 700, color: "#333D4B", marginBottom: 12 }}>{result.nextTheme.title}</h4>
@@ -524,7 +519,6 @@ export default function DateThemeApp() {
           </div>
         )}
 
-        {/* 하단 광고 영역 */}
         <BannerAd adGroupId={AD_GROUP_ID} />
       </div>
 
