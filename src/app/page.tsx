@@ -159,10 +159,11 @@ export default function DateThemeApp() {
       setFestivals(data.festivals || []);
       const trails = data.trails || [];
 
+      // 2단계: AI 코스 생성 요청 (축제 데이터 포함)
       const res = await fetch(`${BASE_API_URL}/api/proxy`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ profile, taste, condition, trails })
+        body: JSON.stringify({ profile, taste, condition, festivals: data.festivals })
       });
 
       if (!res.ok) throw new Error("코스 생성 실패");
@@ -183,7 +184,8 @@ export default function DateThemeApp() {
     if (loading) return;
     triggerHaptic(); setLoading(true); setErrorMsg("");
     try {
-      const payload = JSON.parse(JSON.stringify({ profile, taste, condition }));
+      // 1. 데이터 정제 (불필요한 참조 제거 및 축제 데이터 포함)
+      const payload = JSON.parse(JSON.stringify({ profile, taste, condition, festivals }));
       const PROXY_URL = `${BASE_API_URL}/api/proxy`;
       console.log("Requesting AI theme from:", PROXY_URL, "with payload:", payload);
 
@@ -287,7 +289,7 @@ export default function DateThemeApp() {
               ))}
             </div>
             <button className="roll-btn" onClick={() => setStep("profile")}>시작하기</button>
-            <p style={{ textAlign: "center", color: "#ADB5BD", fontSize: 12, marginTop: 16 }}>v2.9.1</p>
+            <p style={{ textAlign: "center", color: "#ADB5BD", fontSize: 12, marginTop: 16 }}>v2.9.2</p>
           </div>
         )}
 
