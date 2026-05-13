@@ -11,13 +11,13 @@ export function useTossBanner() {
     if (isInitialized) return;
 
     // SDK 초기화 지원 여부 확인
-    if (!TossAds.initialize.isSupported()) {
+    if (!TossAds?.initialize?.isSupported?.()) {
       console.warn('이 환경에서는 배너 광고 초기화 기능을 사용할 수 없습니다.');
       return;
     }
 
     // SDK 초기화
-    TossAds.initialize({
+    TossAds?.initialize?.({
       callbacks: {
         onInitialized: () => {
           console.log('Toss Ads SDK 초기화 완료');
@@ -35,12 +35,12 @@ export function useTossBanner() {
       if (!isInitialized) return;
 
       // 배너 부착 지원 여부 확인
-      if (!TossAds.attachBanner.isSupported()) {
+      if (!TossAds?.attachBanner?.isSupported?.()) {
         console.warn('이 환경에서는 배너 광고 부착 기능을 사용할 수 없습니다.');
         return;
       }
 
-      return TossAds.attachBanner(adGroupId, element, options);
+      return TossAds?.attachBanner?.(adGroupId, element, options);
     },
     [isInitialized],
   );
@@ -93,7 +93,7 @@ export function BannerAd({ adGroupId }: BannerAdProps) {
     // 클린업: 컴포넌트 언마운트 시 배너 제거
     return () => {
       if (attached) {
-        attached.destroy();
+        attached.destroy?.();
       }
     };
   }, [isInitialized, adGroupId, attachBanner]);

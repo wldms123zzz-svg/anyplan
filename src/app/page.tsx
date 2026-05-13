@@ -1,6 +1,12 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
-import { BannerAd } from "@/components/BannerAd";
+import dynamic from "next/dynamic";
+
+// 광고 컴포넌트를 클라이언트 사이드에서만 로드하도록 동적 임포트
+const BannerAd = dynamic(() => import("@/components/BannerAd").then(mod => mod.BannerAd), { 
+  ssr: false,
+  loading: () => <div style={{ width: '100%', height: '96px', marginTop: '20px', marginBottom: '20px', borderRadius: '16px', backgroundColor: '#f9fafb' }} />
+});
 
 // 취향 태그 풀
 const TAGS = {
@@ -25,8 +31,16 @@ export default function DateThemeApp() {
     지역: string;
     mode: string;
     이동수단: string;
-    체력?: string;
-  }>({ myBody: "", partnerBody: "", 예산: "", 지역: "전국", mode: "", 이동수단: "" });
+    체력: string;
+  }>({ 
+    myBody: "", 
+    partnerBody: "", 
+    예산: "", 
+    지역: "전국", 
+    mode: "", 
+    이동수단: "뚜벅이 데이트 🚶‍♀️", 
+    체력: "보통" 
+  });
   const [result, setResult] = useState<{
     theme: string;
     emoji: string;
@@ -122,7 +136,7 @@ export default function DateThemeApp() {
     triggerHaptic(); 
     setStep("start"); 
     setTaste({ 무드: [], 활동: [] }); 
-    setCondition({ 지역: "전국", 예산: "적당히", 이동수단: "대중교통", 체력: "보통", myBody: "", partnerBody: "", mode: "" }); 
+    setCondition({ myBody: "", partnerBody: "", 예산: "적당히", 지역: "전국", mode: "", 이동수단: "뚜벅이 데이트 🚶‍♀️", 체력: "보통" }); 
     setResult(null); 
     setErrorMsg("");
   };
@@ -303,7 +317,7 @@ export default function DateThemeApp() {
                 { id: "종이인형", title: "🪫 종이인형", desc: "최대한 덜 걷고 푹 쉬는 게 최고예요" }
               ].map(v => (
                 <button 
-                  key={v.id} 
+                   key={v.id} 
                   style={{ 
                     textAlign: "left", padding: "20px", borderRadius: "16px", 
                     border: condition.체력 === v.id ? "2px solid #3182F6" : "1px solid #E5E8EB",
@@ -388,7 +402,6 @@ export default function DateThemeApp() {
                 <h2 style={{ fontSize: 28, fontWeight: 800, marginBottom: 12, color: "#191F28", letterSpacing: "-0.5px" }}>{result.theme}</h2>
                 <p style={{ color: "#4E5968", fontSize: 16, lineHeight: 1.6, marginBottom: 20, fontWeight: 500 }}>{result.desc}</p>
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
-                  {/* 구조: vibe 배열 결측 시의 예외 처리 || [] 적용 */}
                   {(result.vibe || []).map(v => <span key={v} style={{ color: "#3182F6", background: "#FFF", padding: "6px 14px", borderRadius: "20px", fontSize: 14, fontWeight: 600, boxShadow: "0 2px 6px rgba(0,0,0,0.05)" }}>{v}</span>)}
                 </div>
               </div>
@@ -417,7 +430,6 @@ export default function DateThemeApp() {
 
                 <p style={{ fontSize: 14, fontWeight: 700, color: "#191F28", marginBottom: 24, paddingLeft: 4 }}>오늘의 장면들</p>
                 
-                {/* 구조: doThis 배열 결측 시의 예외 처리 || [] 적용 */}
                 {(result.doThis || []).map((item: any, i: number) => (
                   <div key={i} style={{ display: "flex", gap: 20, marginBottom: 36, alignItems: "flex-start" }}>
                     <div style={{
