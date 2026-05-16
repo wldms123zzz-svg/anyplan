@@ -14,8 +14,28 @@ const TAGS = {
   활동: ["먹기", "걷기", "보기", "만들기", "배우기", "놀기", "문화/축제", "역사 탐방 🏛️", "음악/공연 🎵"],
   몸상태: ["완전 쌩쌩함 🏃", "적당함 🚶", "조금 피곤함 🥱", "녹초 상태 🫠"],
   예산: ["공짜면 좋지 💸", "오늘만큼은 돈을 쓸래요! 💳"],
-  지역: ["전국", "서울", "부산", "대구", "인천", "광주", "대전", "울산", "세종", "경기", "강원", "충북", "충남", "전북", "전남", "경북", "경남", "제주"],
-  이동수단: ["뚜벅이 데이트 🚶‍♀️", "자차 데이트 🚗"],
+  지역: ["전국", "완전 랜덤 🎲", "서울", "부산", "대구", "인천", "광주", "대전", "울산", "세종", "경기", "강원", "충북", "충남", "전북", "전남", "경북", "경남", "제주"],
+  이동수단: ["도보 (한 동네) 🚶‍♀️", "대중교통 🚌", "자차 🚗"],
+};
+
+const SUB_REGIONS: Record<string, string[]> = {
+  "서울": ["전체", "강남/서초", "홍대/신촌", "종로/중구", "이태원/용산", "잠실/송파", "영등포/여의도", "성수/건대", "대학로/혜화"],
+  "부산": ["전체", "해운대/센텀", "광안리/수영", "서면/전포", "남포/영도", "기장/동부산", "동래/온천장"],
+  "대구": ["전체", "동성로/중구", "수성못/수성구", "앞산/남구", "팔공산/동구", "달서구/두류"],
+  "인천": ["전체", "부평", "구월/남동", "송도/연수", "영종도/중구", "차이나타운/신포", "강화도"],
+  "광주": ["전체", "충장로/동명동", "상무지구/서구", "수완지구/광산구", "양림동/남구", "용봉동/북구"],
+  "대전": ["전체", "둔산/서구", "은행동/대흥동", "유성/궁동", "도안/봉명", "대청호/동구"],
+  "울산": ["전체", "삼산/남구", "태화강/중구", "일산지/동구", "간절곶/울주", "송정/북구"],
+  "세종": ["전체", "나성동/새롬동", "호수공원/어진동", "조치원", "금남면"],
+  "경기": ["전체", "수원/행궁동", "성남/판교/분당", "용인/에버랜드", "고양/일산", "파주/헤이리", "가평/청평", "양평/두물머리", "김포", "화성/동탄"],
+  "강원": ["전체", "춘천", "강릉", "속초/양양", "원주", "평창/정선", "동해/삼척"],
+  "충북": ["전체", "청주", "충주", "제천", "단양", "진천/음성"],
+  "충남": ["전체", "천안", "아산", "공주", "부여", "보령/대천", "당진", "서산/태안"],
+  "전북": ["전체", "전주", "군산", "익산", "남원", "완주", "고창/부안"],
+  "전남": ["전체", "여수", "순천", "목포", "담양", "나주", "보성", "광양", "해남/완도"],
+  "경북": ["전체", "경주", "포항", "안동", "구미", "경산", "영주", "문경", "울릉도"],
+  "경남": ["전체", "창원/마산/진해", "진주", "통영", "거제", "김해", "밀양", "남해", "하동"],
+  "제주": ["전체", "제주시", "애월/한림", "서귀포시", "중문", "성산/표선", "우도"]
 };
 
 const BASE_API_URL = "https://anyplan-gamma.vercel.app";
@@ -29,6 +49,7 @@ export default function DateThemeApp() {
     partnerBody: string;
     예산: string;
     지역: string;
+    세부지역: string;
     mode: string;
     이동수단: string;
     체력: string;
@@ -37,8 +58,9 @@ export default function DateThemeApp() {
     partnerBody: "", 
     예산: "", 
     지역: "전국", 
+    세부지역: "전체",
     mode: "", 
-    이동수단: "뚜벅이 데이트 🚶‍♀️", 
+    이동수단: "도보 (한 동네) 🚶‍♀️", 
     체력: "보통" 
   });
   const [result, setResult] = useState<{
@@ -129,14 +151,18 @@ export default function DateThemeApp() {
 
   const setCond = (key: string, val: string) => {
     triggerHaptic("light");
-    setCondition((p: any) => ({ ...p, [key]: val }));
+    if (key === "지역") {
+      setCondition((p: any) => ({ ...p, [key]: val, 세부지역: "전체" }));
+    } else {
+      setCondition((p: any) => ({ ...p, [key]: val }));
+    }
   };
 
   const reset = () => {
     triggerHaptic(); 
     setStep("start"); 
     setTaste({ 무드: [], 활동: [] }); 
-    setCondition({ myBody: "", partnerBody: "", 예산: "적당히", 지역: "전국", mode: "", 이동수단: "뚜벅이 데이트 🚶‍♀️", 체력: "보통" }); 
+    setCondition({ myBody: "", partnerBody: "", 예산: "적당히", 지역: "전국", 세부지역: "전체", mode: "", 이동수단: "도보 (한 동네) 🚶‍♀️", 체력: "보통" }); 
     setResult(null); 
     setErrorMsg("");
   };
@@ -145,39 +171,28 @@ export default function DateThemeApp() {
     if (festLoading) return;
     const targetMonth = month || selectedMonth;
     if (month) setSelectedMonth(month);
-    triggerHaptic(); setFestLoading(true); setShowFestivals(true); setFestMessage("");
+    triggerHaptic();
+    setFestLoading(true);
+    setShowFestivals(true);
+    setFestMessage("");
     try {
-      const region = condition.지역 === "전국" ? "" : condition.지역;
-      const festUrl = `${BASE_API_URL}/api/proxy?region=${region}&month=${targetMonth}&t=${Date.now()}`;
+      const region = (condition.지역 === "전국" || condition.지역 === "완전 랜덤 🎲") ? "" : condition.지역;
+      const festUrl = `${BASE_API_URL}/api/proxy?region=${encodeURIComponent(region)}&month=${targetMonth}&t=${Date.now()}`;
       const festRes = await fetch(festUrl);
       const data = await festRes.json();
-
-      if (data.error || data.message) {
-        throw data;
+      const list = data.festivals || [];
+      setFestivals(list);
+      if (list.length === 0) {
+        setFestMessage(`${targetMonth}월엔 해당 지역 축제·행사 정보가 없습니다.`);
       }
-
-      setFestivals(data.festivals || []);
-      const trails = data.trails || [];
-
-      // 2단계: AI 코스 생성 요청 (축제 데이터 포함)
-      const res = await fetch(`${BASE_API_URL}/api/proxy`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ profile, taste, condition, festivals: data.festivals })
-      });
-
-      if (!res.ok) throw new Error("코스 생성 실패");
-      const resultData = await res.json();
-      setResult(resultData);
-      setStep("result");
-    } catch (err: any) { 
+    } catch (err: any) {
       console.error("축제 데이터 요청 실패:", err);
-      const serverMsg = err.error || "데이터 요청 실패";
-      const detailMsg = err.details ? `\n상세: ${err.details}` : "";
-      setFestMessage(`[DEBUG] ${serverMsg}${detailMsg}`); 
-      setFestivals([]); 
+      setFestMessage("데이터를 불러올 수 없습니다.");
+      setFestivals([]);
+    } finally {
+      setFestLoading(false);
     }
-    finally { setFestLoading(false); }
+    // ⛔ 절대 setStep이나 rollTheme 호출 안 함
   };
 
   const rollTheme = async () => {
@@ -362,7 +377,7 @@ export default function DateThemeApp() {
             <div style={{ marginBottom: 32 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                 <p style={{ fontSize: 14, fontWeight: 600, color: "#4E5968", margin: 0 }}>지역</p>
-                {condition.지역 && condition.지역 !== "전국" && (
+                {condition.지역 && condition.지역 !== "전국" && condition.지역 !== "완전 랜덤 🎲" && (
                   <button
                     onClick={() => fetchFestivals()}
                     style={{ fontSize: 12, padding: "6px 12px", borderRadius: "8px", border: "none", background: "#E8F3FF", color: "#3182F6", fontWeight: 600, cursor: "pointer" }}
@@ -376,6 +391,23 @@ export default function DateThemeApp() {
                   <button key={v} className={`tag-btn ${condition.지역 === v ? "active" : ""}`} onClick={() => setCond("지역", v)}>{v}</button>
                 ))}
               </div>
+              {condition.지역 && SUB_REGIONS[condition.지역] && (
+                <div style={{ marginTop: 16, padding: 16, background: "#F9FAFB", borderRadius: 16 }}>
+                  <p style={{ fontSize: 13, fontWeight: 600, color: "#6B7684", marginBottom: 12 }}>상세 지역 선택</p>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                    {SUB_REGIONS[condition.지역].map(v => (
+                      <button 
+                        key={v} 
+                        className={`tag-btn ${condition.세부지역 === v ? "active" : ""}`} 
+                        style={{ padding: "8px 12px", fontSize: 14 }}
+                        onClick={() => setCond("세부지역", v)}
+                      >
+                        {v}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
             <div style={{ marginBottom: 40 }}>
               <p style={{ fontSize: 14, fontWeight: 600, color: "#4E5968", marginBottom: 12 }}>예산</p>
@@ -411,7 +443,7 @@ export default function DateThemeApp() {
               <div style={{ padding: "32px 24px" }}>
                 {result.transportInfo && (
                   <div style={{ background: "#F2F4F6", padding: "18px 20px", borderRadius: "20px", marginBottom: 32, display: "flex", alignItems: "flex-start", gap: 14, border: "1px solid #E5E8EB" }}>
-                    <span style={{ fontSize: 22 }}>{condition.이동수단?.includes("자차") ? "🚗" : "🚌"}</span>
+                    <span style={{ fontSize: 22 }}>{condition.이동수단?.includes("자차") ? "🚗" : condition.이동수단?.includes("대중교통") ? "🚌" : "🚶‍♀️"}</span>
                     <div>
                       <p style={{ fontSize: 14, color: "#4E5968", fontWeight: 600, margin: "0 0 4px 0" }}>이동 가이드</p>
                       <p style={{ fontSize: 14, color: "#6B7684", margin: 0, lineHeight: 1.5 }}>{result.transportInfo}</p>
@@ -601,12 +633,13 @@ export default function DateThemeApp() {
                       <div style={{ width: 80, height: 80, borderRadius: 12, background: "#E5E8EB", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32 }}>🎪</div>
                     )}
                     <div style={{ flex: 1 }}>
-                      {f.eventstartdate && (
+                      {f.eventstartdate && typeof f.eventstartdate === 'string' && (
                         <div style={{ fontSize: 13, color: "#3182F6", fontWeight: 600, marginBottom: 4 }}>
-                          {f.eventstartdate.slice(4, 6)}.{f.eventstartdate.slice(6, 8)} ~ {f.eventenddate?.slice(4, 6)}.{f.eventenddate?.slice(6, 8)}
+                          {f.eventstartdate.length >= 6 ? `${f.eventstartdate.slice(4, 6)}.${f.eventstartdate.slice(6, 8)}` : f.eventstartdate}
+                          {f.eventenddate && typeof f.eventenddate === 'string' && f.eventenddate.length >= 6 && ` ~ ${f.eventenddate.slice(4, 6)}.${f.eventenddate.slice(6, 8)}`}
                         </div>
                       )}
-                      <div style={{ fontSize: 16, fontWeight: 700, color: "#191F28", marginBottom: 4 }}>{f.title}</div>
+                      <div style={{ fontSize: 16, fontWeight: 700, color: "#191F28", marginBottom: 4 }}>{f.title || "제목 없음"}</div>
                       <div style={{ fontSize: 13, color: "#8B95A1" }}>{f.addr1 || "지역 정보 없음"}</div>
                     </div>
                   </div>
